@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:async'; // Import for Timer functionality
+import 'dart:async';
 
 class Chant extends StatefulWidget {
   const Chant({super.key});
@@ -10,47 +10,62 @@ class Chant extends StatefulWidget {
 
 class _ChantButtonState extends State<Chant> {
   int count = 0;
-  bool isHighlighted = false; // Flag for button highlight after 2 seconds
-  late Timer _highlightTimer; // Timer for button highlight
-  late Timer _elapsedTimeTimer; // Timer for elapsed time update
-  int malasCount = 0; // Counter for malas (completed sets of 108 chants)
-  Stopwatch stopwatch = Stopwatch(); // Timer for tracking chanting duration
-  bool isTimerRunning = false; // Flag for stopwatch running state
+  int malasCount = 0;
+  // bool isHighlighted = false;
+  bool isTimerRunning = false;
+  late Timer _highlightTimer;
+  late Timer _elapsedTimeTimer;
+  final Stopwatch stopwatch = Stopwatch();
+
+  // Color constants
+  static const Color primaryColor = Color.fromARGB(255, 205, 131, 181);
+  static const Color highlightColor = Color.fromARGB(255, 213, 46, 118);
+  static const Color backgroundColor = Color(0xFF1A1A1A);
+  static const Color textColor = Color.fromARGB(255, 221, 205, 205);
 
   @override
   void initState() {
     super.initState();
-    _startHighlightTimer();
+    // _startHighlightTimer();
   }
 
-  void _startHighlightTimer() {
-    _highlightTimer = Timer(const Duration(seconds: 2), () {
-      setState(() {
-        isHighlighted = true;
-      });
-    });
-  }
+  // void _startHighlightTimer() {
+  //   _highlightTimer = Timer(const Duration(seconds: 2), () {
+  //     setState(() => isHighlighted = true);
+  //   });
+  // }
 
   void incrementCount() {
     setState(() {
       count++;
       if (count == 108) {
-        count = 0; // Reset count after 108
-        malasCount++; // Increment malas count
+        count = 0;
+        malasCount++;
       }
       if (!isTimerRunning) {
-        stopwatch.start(); // Start stopwatch on first chant
+        stopwatch.start();
         isTimerRunning = true;
-        _startElapsedTimeTimer(); // Start the elapsed time timer
+        _startElapsedTimeTimer();
       }
     });
   }
 
+  void reset() {
+    setState(() {
+      count = 0;
+      malasCount = 0;
+      // isHighlighted = false;
+      isTimerRunning = false;
+      stopwatch.reset();
+      stopwatch.stop();
+      _highlightTimer.cancel();
+      // _startHighlightTimer();
+    });
+  }
+
   void _startElapsedTimeTimer() {
-    _elapsedTimeTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (stopwatch.isRunning) {
-        setState(() {}); // Rebuild the UI to update the elapsed time
-      }
+    _elapsedTimeTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (stopwatch.isRunning) setState(() {});
     });
   }
 
@@ -58,65 +73,88 @@ class _ChantButtonState extends State<Chant> {
     setState(() {
       stopwatch.stop();
       isTimerRunning = false;
-      _elapsedTimeTimer.cancel(); // Stop the elapsed time timer
+      _elapsedTimeTimer.cancel();
     });
   }
 
   String formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, "0");
-    return "${twoDigits(duration.inMinutes)}:${twoDigits(duration.inSeconds % 60)}"; 
+    return "${twoDigits(duration.inMinutes)}:${twoDigits(duration.inSeconds % 60)}";
+  }
+
+  Widget _buildCounterDisplay() {
+    return GestureDetector(
+      onTap: incrementCount,
+      child: Container(
+        width: 300,
+        height: 300,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: primaryColor,
+            width: 5,
+          ),
+          color: Colors.transparent,
+        ),
+        child: Center(
+          child: Text(
+            count.toString(),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 72.0,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildButton(String label, VoidCallback onPressed) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+      ),
+      child: Text(label),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center, // Center widgets vertically
-        children: [
-          GestureDetector(
-            onTap: incrementCount,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isHighlighted ? Colors.red : Colors.purple, // Border color with highlight
-                  width: 5, // Border width
-                ),
-                color: Colors.transparent, // Transparent background
-              ),
-              child: Center(
-                child: Text(
-                  count.toString(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 72.0, // Adjust font size as needed
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20), // Spacing between buttons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly, // Space buttons horizontally
-            children: [
-              ElevatedButton(
-                onPressed: () {},
-                child: const Text('just button'), // Dynamic button text
-              ),
-              ElevatedButton(
-                onPressed: () {},
-                child: Text("Malas  $malasCount"),
-              ),
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.fromARGB(255, 243, 134, 183),
+              Color.fromARGB(255, 163, 22, 83),
             ],
           ),
-          const SizedBox(height: 10), // Spacing between buttons and timer display
-          Text(
-            formatDuration(stopwatch.elapsed), // Display formatted elapsed time
-            style: const TextStyle(fontSize: 18.0),
-          ),
-        ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildCounterDisplay(),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildButton('Reset', reset),
+                _buildButton("Malas  $malasCount", () {}),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              formatDuration(stopwatch.elapsed),
+              style: const TextStyle(fontSize: 24.0, color: textColor),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -124,9 +162,7 @@ class _ChantButtonState extends State<Chant> {
   @override
   void dispose() {
     _highlightTimer.cancel();
-    if (isTimerRunning) {
-      _elapsedTimeTimer.cancel(); // Cancel the elapsed time timer
-    }
+    if (isTimerRunning) _elapsedTimeTimer.cancel();
     super.dispose();
   }
 }
