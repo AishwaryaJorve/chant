@@ -1,4 +1,5 @@
-import 'package:chants/chant.dart';
+import 'package:chants/screens/chant_screen.dart';
+import 'package:chants/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 
 class StartScreen extends StatelessWidget {
@@ -32,12 +33,12 @@ class StartScreen extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const Chant()),
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
               );
             },
             style: OutlinedButton.styleFrom(foregroundColor: Colors.white),
             icon: const Icon(Icons.arrow_right_alt_outlined),
-            label: const Text("Get Started"),
+            label: const Text("Login"),
           )
         ],
       ),

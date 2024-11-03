@@ -1,4 +1,4 @@
-import 'package:chants/start_Screen.dart';
+import 'package:chants/screens/start_screen.dart';
 import 'package:flutter/material.dart';
 
 void main() {
