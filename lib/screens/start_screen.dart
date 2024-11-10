@@ -1,46 +1,50 @@
-import 'package:chants/screens/chant_screen.dart';
 import 'package:chants/screens/login_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:chants/models/app_theme.dart';
 
 class StartScreen extends StatelessWidget {
   const StartScreen({super.key});
 
-  // final void Function() chant;
-
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset(
-            'assets/images/chant7.png',
-            color: const Color.fromARGB(255, 205, 131, 181),
-            width: 300,
-          ),
-          const SizedBox(
-            height: 100,
-          ),
-          const Text(
-            "Spiritual Growth",
-            style: TextStyle(
-                color: Color.fromARGB(255, 221, 205, 205), fontSize: 24),
-          ),
-          const SizedBox(
-            height: 30,
-          ),
-          OutlinedButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-              );
-            },
-            style: OutlinedButton.styleFrom(foregroundColor: Colors.white),
-            icon: const Icon(Icons.arrow_right_alt_outlined),
-            label: const Text("Login"),
-          )
-        ],
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Scaffold(
+      backgroundColor: colorScheme.background,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/images/chant7.png',
+              color: colorScheme.primary, // Primary color for image overlay
+              width: 300,
+            ),
+            const SizedBox(height: 100),
+            Text(
+              "Spiritual Growth",
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontSize: 24,
+                color: colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 30),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: colorScheme.onPrimary, // Button color
+              ),
+              icon: const Icon(Icons.arrow_right_alt_outlined),
+              label: const Text("Login"),
+            ),
+          ],
+        ),
       ),
     );
   }

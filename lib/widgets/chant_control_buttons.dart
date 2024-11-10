@@ -1,6 +1,6 @@
-// lib/widgets/chant_control_buttons.dart
+import 'package:chants/models/app_theme.dart';
 import 'package:flutter/material.dart';
-import '../models/chant_model.dart';
+import '../themes/app_theme.dart';
 
 class ChantControlButtons extends StatelessWidget {
   final VoidCallback onReset;
@@ -11,7 +11,7 @@ class ChantControlButtons extends StatelessWidget {
     Key? key,
     required this.onReset,
     required this.onToggleTimer,
-    required this.isTimerRunning,
+    required this.isTimerRunning
   }) : super(key: key);
 
   @override
@@ -26,8 +26,8 @@ class ChantControlButtons extends StatelessWidget {
                 onPressed: onReset,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 20),
-                  backgroundColor: ChantModel.primaryColor,
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppTheme.buttonColorForMode(context),
+                  foregroundColor: AppTheme.buttonTextColorForMode(context),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -50,8 +50,8 @@ class ChantControlButtons extends StatelessWidget {
                 onPressed: onToggleTimer,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 20),
-                  backgroundColor: ChantModel.primaryColor,
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppTheme.buttonColorForMode(context),
+                  foregroundColor: AppTheme.buttonTextColorForMode(context),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),

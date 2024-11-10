@@ -71,15 +71,8 @@ class _ChantScreenState extends State<ChantScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ChantModel.backgroundColor,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: AppTheme.gradientColors,
-          ),
-        ),
+        
 
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

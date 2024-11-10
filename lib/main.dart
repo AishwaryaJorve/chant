@@ -1,29 +1,35 @@
-import 'package:chants/screens/start_screen.dart';
+import 'package:chants/models/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:chants/screens/start_screen.dart';
 
 void main() {
-  runApp(
-    MaterialApp(
-      home: Scaffold(
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                // Color.fromARGB(255, 245, 131, 182), 
-                // Color.fromARGB(255, 135, 3, 60), 
-                Color.fromARGB(255, 243, 134, 183), 
-                Color.fromARGB(255, 163, 22, 83), 
-                // Color.fromARGB(255, 78, 13, 151), 
-                // Color.fromARGB(255, 107, 15, 168),
-              ],
-            ),
-          ),
-          // color: Color.fromARGB(255, 248, 196, 231),
-          child: StartScreen(),
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      themeMode: ThemeMode.system,
+      theme: ThemeData(
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: AppTheme.lightBackgroundColor,
+        colorScheme: AppTheme.lightColorScheme,
+        textTheme: TextTheme(
+          bodyLarge: TextStyle(color: AppTheme.lightTextColor),
+          bodyMedium: TextStyle(color: AppTheme.lightTextColor),
         ),
       ),
-    ),
-  );
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: AppTheme.darkBackgroundColor,
+        colorScheme: AppTheme.darkColorScheme,
+        textTheme: TextTheme(
+          bodyLarge: TextStyle(color: AppTheme.darkTextColor),
+          bodyMedium: TextStyle(color: AppTheme.darkTextColor),
+        ),
+      ),
+      home: const StartScreen(),
+    );
+  }
 }

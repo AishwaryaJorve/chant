@@ -1,4 +1,3 @@
-// lib/screens/login_screen.dart
 import 'package:chants/screens/chant_screen.dart';
 import 'package:flutter/material.dart';
 import '../models/app_theme.dart';
@@ -15,6 +14,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController passwordController = TextEditingController();
 
   void login() {
+    
     // Implement login logic here
     final username = usernameController.text;
     final password = passwordController.text;
@@ -24,8 +24,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Get current text color based on theme mode
+    Color textColor = AppTheme.textColorForMode(context);
+
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Center(
@@ -43,31 +45,31 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 20),
               TextField(
                 controller: usernameController,
-                style: const TextStyle(color: AppTheme.textColor),
+                style: TextStyle(color: textColor), // Use dynamic text color
                 decoration: InputDecoration(
                   labelText: 'Username',
-                  labelStyle: const TextStyle(color: AppTheme.textColor),
+                  labelStyle: TextStyle(color: textColor), // Dynamic label color
                   filled: true,
                   fillColor: AppTheme.highlightColor.withOpacity(0.1),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppTheme.primaryColor),
+                    borderSide: BorderSide(color: AppTheme.primaryColor),
                   ),
                 ),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: passwordController,
-                style: const TextStyle(color: AppTheme.textColor),
+                style: TextStyle(color: textColor), // Use dynamic text color
                 obscureText: true,
                 decoration: InputDecoration(
                   labelText: 'Password',
-                  labelStyle: const TextStyle(color: AppTheme.textColor),
+                  labelStyle: TextStyle(color: textColor), // Dynamic label color
                   filled: true,
                   fillColor: AppTheme.highlightColor.withOpacity(0.1),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppTheme.primaryColor),
+                    borderSide: BorderSide(color: AppTheme.primaryColor),
                   ),
                 ),
               ),
@@ -81,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
+                  backgroundColor: AppTheme.primaryColor, // Change as per mode if needed
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     vertical: 15.0,
