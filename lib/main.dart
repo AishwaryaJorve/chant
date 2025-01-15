@@ -1,35 +1,23 @@
-import 'package:chants/models/app_theme.dart';
+// main.dart
 import 'package:flutter/material.dart';
-import 'package:chants/screens/start_screen.dart';
+import 'services/theme_service.dart';
+import 'screens/start.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Meditation App',
       themeMode: ThemeMode.system,
-      theme: ThemeData(
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: AppTheme.lightBackgroundColor,
-        colorScheme: AppTheme.lightColorScheme,
-        textTheme: TextTheme(
-          bodyLarge: TextStyle(color: AppTheme.lightTextColor),
-          bodyMedium: TextStyle(color: AppTheme.lightTextColor),
-        ),
-      ),
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: AppTheme.darkBackgroundColor,
-        colorScheme: AppTheme.darkColorScheme,
-        textTheme: TextTheme(
-          bodyLarge: TextStyle(color: AppTheme.darkTextColor),
-          bodyMedium: TextStyle(color: AppTheme.darkTextColor),
-        ),
-      ),
-      home: const StartScreen(),
+      theme: ThemeService.lightTheme,
+      darkTheme: ThemeService.darkTheme,
+      home: const StartPage(),
     );
   }
 }

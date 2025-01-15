@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/app_theme.dart';
-import '../themes/app_theme.dart';
 
 class CounterDisplay extends StatelessWidget {
   final int count;
@@ -9,11 +7,14 @@ class CounterDisplay extends StatelessWidget {
   const CounterDisplay({
     required this.count,
     required this.onTap,
-    Key? key, required Color borderColor,
-  }) : super(key: key);
+    super.key, 
+    required Color borderColor,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -22,7 +23,7 @@ class CounterDisplay extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: AppTheme.counterBorderColorForMode(context),
+            color: colorScheme.onSurface.withOpacity(0.7), // Light or dark border color based on theme
             width: 5,
           ),
           color: Colors.transparent,
@@ -31,7 +32,7 @@ class CounterDisplay extends StatelessWidget {
           child: Text(
             count.toString(),
             style: TextStyle(
-              color: AppTheme.counterTextColorForMode(context),
+              color: colorScheme.onSurface, // Adapts text color based on theme
               fontSize: 72.0,
               fontWeight: FontWeight.bold,
             ),

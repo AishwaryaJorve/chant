@@ -1,4 +1,3 @@
-// lib/screens/chant_screen.dart
 import 'package:chants/models/app_theme.dart';
 import 'package:chants/widgets/chant_control_buttons.dart';
 import 'package:chants/widgets/chant_info_buttons.dart';
@@ -29,8 +28,10 @@ class _ChantScreenState extends State<ChantScreen> {
       if (!chantModel.isTimerRunning) {
         chantModel.isTimerRunning = true;
         timerService.startTimer(onTick: (elapsed) {
-          setState(() {chantModel.elapsed = elapsed;
-          chantModel.masterElapsed=elapsed;});
+          setState(() {
+            chantModel.elapsed = elapsed;
+            chantModel.masterElapsed = elapsed;
+          });
         });
       }
     });
@@ -46,64 +47,72 @@ class _ChantScreenState extends State<ChantScreen> {
   void toggleTimer() {
     setState(() {
       if (chantModel.isTimerRunning) {
-        pauseTimer(); 
+        pauseTimer();
       } else {
-        startTimer(); 
+        startTimer();
       }
     });
   }
 
   void startTimer() {
-    chantModel.isTimerRunning = true; 
+    chantModel.isTimerRunning = true;
     timerService.startTimer(onTick: (elapsed) {
-      setState(() {chantModel.elapsed = elapsed; chantModel.masterElapsed=elapsed;});
+      setState(() {
+        chantModel.elapsed = elapsed;
+        chantModel.masterElapsed = elapsed;
+      });
     });
   }
 
   void pauseTimer() {
     setState(() {
-      chantModel.isTimerRunning =
-          false; 
-      timerService.stopTimer(); 
+      chantModel.isTimerRunning = false;
+      timerService.stopTimer();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Accessing the color scheme based on the current theme (light or dark)
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: Container(
-        
-
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Displaying elapsed time
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.access_time_rounded, 
-                  color: ChantModel.textColor,
-                  size: 24, 
+                Icon(
+                  Icons.access_time_rounded,
+                  color: colorScheme.onSurface, // Using theme's text color
+                  size: 24,
                 ),
-                const SizedBox(width: 8), 
+                const SizedBox(width: 8),
                 Text(
                   TimerService.formatDuration(chantModel.elapsed),
-                  style: const TextStyle(
-                      fontSize: 24.0, color: ChantModel.textColor),
+                  style: TextStyle(
+                    fontSize: 24.0,
+                    color: colorScheme.onSurface, // Using theme's text color
+                  ),
                 ),
               ],
             ),
 
             const SizedBox(height: 20),
 
+            // Counter display with border color from theme
             CounterDisplay(
               count: chantModel.count,
               onTap: incrementCount,
-              borderColor: ChantModel.primaryColor,
+              borderColor: colorScheme.primary, // Using theme's primary color
             ),
 
             const SizedBox(height: 20),
 
+            // Chant info buttons with dynamic styling
             ChantInfoButtons(
               malasCount: chantModel.malasCount,
               masterCount: chantModel.masterCount,
@@ -112,6 +121,7 @@ class _ChantScreenState extends State<ChantScreen> {
 
             const SizedBox(height: 20),
 
+            // Chant control buttons
             ChantControlButtons(
               onReset: reset,
               onToggleTimer: toggleTimer,
@@ -125,7 +135,7 @@ class _ChantScreenState extends State<ChantScreen> {
 
   @override
   void dispose() {
-    timerService.stopTimer(); 
+    timerService.stopTimer();
     super.dispose();
   }
 }

@@ -1,4 +1,3 @@
-// lib/widgets/chant_info_display.dart
 import 'package:flutter/material.dart';
 import '../services/timer_service.dart';
 
@@ -16,24 +15,27 @@ class ChantInfoButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _buildInfoTile("Malas", malasCount.toString()),
-        _buildInfoTile("Chants", masterCount.toString()),
-        _buildInfoTile("Time", TimerService.formatDuration(elapsedTime)),
+        _buildInfoTile(context, "Malas", malasCount.toString()),
+        _buildInfoTile(context, "Chants", masterCount.toString()),
+        _buildInfoTile(context, "Time", TimerService.formatDuration(elapsedTime)),
       ],
     );
   }
 
   // Private method to build each tile
-  Widget _buildInfoTile(String label, String value) {
+  Widget _buildInfoTile(BuildContext context, String label, String value) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Expanded(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 25),
         padding: const EdgeInsets.all(2.0), // Reduced padding
         decoration: BoxDecoration(
-          color: const Color.fromARGB(255, 208, 161, 193), // Button background color
+          color: colorScheme.primary.withOpacity(0.2), // Using theme color for background
           borderRadius: BorderRadius.circular(19.0), // Rounded corners
         ),
         child: Column(
@@ -41,14 +43,17 @@ class ChantInfoButtons extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(fontSize: 14, color: Colors.black), // Reduced font size
+              style: TextStyle(
+                fontSize: 14,
+                color: colorScheme.onSurface, // Text color based on theme
+              ),
             ),
             Text(
               value,
-              style: const TextStyle(
-                fontSize: 16, // Reduced font size
+              style: TextStyle(
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Colors.black,
+                color: colorScheme.onSurface, // Text color based on theme
               ),
             ),
           ],

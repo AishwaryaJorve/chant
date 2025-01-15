@@ -1,6 +1,6 @@
-import 'package:chants/screens/login_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:chants/models/app_theme.dart';
+import 'login_screen.dart';
+import '../widgets/theme_background.dart';
 
 class StartScreen extends StatelessWidget {
   const StartScreen({super.key});
@@ -11,39 +11,65 @@ class StartScreen extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: colorScheme.background,
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              'assets/images/chant7.png',
-              color: colorScheme.primary, // Primary color for image overlay
-              width: 300,
+      body: ThemeBackground(
+        child: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Image.asset(
+                    'assets/images/chant7.png',
+                    color: colorScheme.primary,
+                    width: 200,
+                  ),
+                ),
+                const SizedBox(height: 48),
+                
+                Text(
+                  "Spiritual Growth",
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    color: colorScheme.onBackground,
+                    fontSize: 32,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  icon: const Icon(Icons.arrow_forward),
+                  label: const Text(
+                    "Get Started",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 100),
-            Text(
-              "Spiritual Growth",
-              style: theme.textTheme.bodyLarge?.copyWith(
-                fontSize: 24,
-                color: colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 30),
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                );
-              },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: colorScheme.onPrimary, // Button color
-              ),
-              icon: const Icon(Icons.arrow_right_alt_outlined),
-              label: const Text("Login"),
-            ),
-          ],
+          ),
         ),
       ),
     );

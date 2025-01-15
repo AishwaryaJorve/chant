@@ -1,6 +1,5 @@
 import 'package:chants/screens/chant_screen.dart';
 import 'package:flutter/material.dart';
-import '../models/app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -14,18 +13,15 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController passwordController = TextEditingController();
 
   void login() {
-    
     // Implement login logic here
-    final username = usernameController.text;
-    final password = passwordController.text;
 
     // Add your login validation and storage logic
   }
 
   @override
   Widget build(BuildContext context) {
-    // Get current text color based on theme mode
-    Color textColor = AppTheme.textColorForMode(context);
+    // Get the current color scheme based on the theme mode (light/dark)
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       body: Padding(
@@ -34,42 +30,42 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
+              Text(
                 'Login',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryColor,
+                  color: colorScheme.primary, // Primary color from the theme
                 ),
               ),
               const SizedBox(height: 20),
               TextField(
                 controller: usernameController,
-                style: TextStyle(color: textColor), // Use dynamic text color
+                style: TextStyle(color: colorScheme.onSurface), // Dynamic text color
                 decoration: InputDecoration(
                   labelText: 'Username',
-                  labelStyle: TextStyle(color: textColor), // Dynamic label color
+                  labelStyle: TextStyle(color: colorScheme.onSurface), // Dynamic label color
                   filled: true,
-                  fillColor: AppTheme.highlightColor.withOpacity(0.1),
+                  fillColor: colorScheme.surface.withOpacity(0.1), // Lightened background for input
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: AppTheme.primaryColor),
+                    borderSide: BorderSide(color: colorScheme.primary),
                   ),
                 ),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: passwordController,
-                style: TextStyle(color: textColor), // Use dynamic text color
+                style: TextStyle(color: colorScheme.onSurface), // Dynamic text color
                 obscureText: true,
                 decoration: InputDecoration(
                   labelText: 'Password',
-                  labelStyle: TextStyle(color: textColor), // Dynamic label color
+                  labelStyle: TextStyle(color: colorScheme.onSurface), // Dynamic label color
                   filled: true,
-                  fillColor: AppTheme.highlightColor.withOpacity(0.1),
+                  fillColor: colorScheme.surface.withOpacity(0.1), // Lightened background for input
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: AppTheme.primaryColor),
+                    borderSide: BorderSide(color: colorScheme.primary),
                   ),
                 ),
               ),
@@ -83,8 +79,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor, // Change as per mode if needed
-                  foregroundColor: Colors.white,
+                  backgroundColor: colorScheme.primary, // Dynamic button color
+                  foregroundColor: colorScheme.onPrimary, // Dynamic button text color
                   padding: const EdgeInsets.symmetric(
                     vertical: 15.0,
                     horizontal: 50.0,
