@@ -119,6 +119,15 @@ Future<void> _onCreate(sqflite.Database db, int version) async {
       total_sessions INTEGER DEFAULT 0
     )
   ''');
+
+  await db.execute('''
+    CREATE TABLE IF NOT EXISTS malas(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      count INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY (user_id) REFERENCES users (id)
+    )
+  ''');
 }
 
 Future<void> _onUpgrade(sqflite.Database db, int oldVersion, int newVersion) async {
@@ -126,4 +135,45 @@ Future<void> _onUpgrade(sqflite.Database db, int oldVersion, int newVersion) asy
     await db.execute('ALTER TABLE user_stats ADD COLUMN total_minutes INTEGER DEFAULT 0');
     await db.execute('ALTER TABLE user_stats ADD COLUMN total_sessions INTEGER DEFAULT 0');
   }
+}
+
+Future<void> updateMalas(int userId, {int increment = 1}) async {
+  final db = await DatabaseService().database;
+  final List<Map<String, dynamic>> existingMalas = await db.query(
+    'malas',
+    where: 'user_id = ?',
+    whereArgs: [userId],
+  );
+
+  if (existingMalas.isNotEmpty) {
+    // Update existing malas count
+    await db.update(
+      'malas',
+      {
+        'count': existingMalas.first['count'] + increment,
+      },
+      where: 'user_id = ?',
+      whereArgs: [userId],
+    );
+  } else {
+    // Insert new malas record
+    await db.insert('malas', {
+      'user_id': userId,
+      'count': increment,
+    });
+  }
+}
+
+Future<int> getTotalMalas(int userId) async {
+  final db = await DatabaseService().database;
+  final List<Map<String, dynamic>> result = await db.query(
+    'malas',
+    where: 'user_id = ?',
+    whereArgs: [userId],
+  );
+
+  if (result.isNotEmpty) {
+    return result.first['count'] as int;
+  }
+  return 0; // Return 0 if no malas found
 }

@@ -98,15 +98,6 @@ class _MeditationSessionScreenState extends State<MeditationSessionScreen> {
     
     if (userId != null) {
       final dbService = DatabaseService();
-      await dbService.saveMeditationSession(
-        MeditationSession(
-          title: widget.title,
-          duration: int.parse(widget.duration.split(' ')[0]),
-          completedAt: DateTime.now(),
-        ),
-        userId,
-      );
-      
       await dbService.updateUserStats(
         userId,
         addMinutes: int.parse(widget.duration.split(' ')[0]),

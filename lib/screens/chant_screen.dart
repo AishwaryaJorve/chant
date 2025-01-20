@@ -78,10 +78,9 @@ class _ChantScreenState extends State<ChantScreen>
 
         // Save session time before resetting
         if (userId != null) {
-           DatabaseService().updateUserStats(
+          DatabaseService().updateUserStats(
             userId,
-            addMinutes: _elapsed.inMinutes,
-            incrementSession: true,
+            malasCount: 1, // Increment the malas count by 1
           );
         }
 

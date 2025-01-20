@@ -118,7 +118,7 @@ class _StartPageState extends State<StartPage> with AuthRequiredMixin {
             children: [
               _buildRecommendedCard(
                 'Mindful Morning',
-                '10 min',
+                '1 min',
                 Colors.orange,
                 Icons.wb_sunny_outlined,
                 isDark,

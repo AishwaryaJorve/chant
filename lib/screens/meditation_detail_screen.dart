@@ -30,22 +30,15 @@ class _MeditationDetailScreenState extends State<MeditationDetailScreen> {
     
     if (userId != null) {
       try {
-        // Save the meditation session
-        final session = MeditationSession(
-          title: widget.title,
-          duration: int.parse(widget.duration.replaceAll(' min', '')),
-          completedAt: DateTime.now(),
-          isFavorite: false,
-        );
-        
-        final db = DatabaseService();
-        await db.saveMeditationSession(session, userId);
+        // Create a session object
+        final sessionDuration = int.parse(widget.duration.replaceAll(' min', ''));
         
         // Update user stats
-        await db.updateUserStats(
+        await DatabaseService().updateUserStats(
           userId,
-          addMinutes: session.duration,
-          incrementSession: true,
+          addMinutes: sessionDuration, // Add the duration of the session
+          incrementSession: true, // Increment the session count
+          malasCount: 1, // Increment the malas count by 1
         );
         
         if (mounted) {

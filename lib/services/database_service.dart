@@ -21,55 +21,24 @@ class DatabaseService {
     
     return await sqflite.openDatabase(
       dbPath,
-      version: 2,  // Increment version number
-      onCreate: (db, version) async {
-        debugPrint('Creating new database...');
-        await _createTables(db);
-      },
+      version: 4, // Increment this version if you added new tables
+      onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
   }
 
-  Future<void> _createTables(sqflite.Database db) async {
-    debugPrint('Creating users table...');
-    await db.execute('''
-      CREATE TABLE users(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL,
-        profile_image TEXT,
-        created_at TEXT NOT NULL
-      )
-    ''');
-
-    debugPrint('Creating meditation_sessions table...');
-    await db.execute('''
-      CREATE TABLE meditation_sessions(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        title TEXT NOT NULL,
-        duration INTEGER NOT NULL,
-        completed_at TEXT NOT NULL,
-        is_favorite INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (user_id) REFERENCES users (id)
-      )
-    ''');
-
-    debugPrint('Creating user_stats table...');
-    await db.execute('''
-      CREATE TABLE user_stats(
-        user_id INTEGER PRIMARY KEY,
-        total_minutes INTEGER DEFAULT 0,
-        total_sessions INTEGER DEFAULT 0
-      )
-    ''');
-    debugPrint('All tables created successfully');
-  }
-
   Future<User> createUser(User user) async {
     final db = await database;
-    final id = await db.insert('users', user.toMap());
-    debugPrint('Created user with ID: $id');
+
+    // Check if user object is null or has required fields
+    if (user == null || user.name.isEmpty || user.email.isEmpty) {
+      throw Exception('User object or required fields are null');
+    }
+
+    // Insert the user and get the ID
+    final id = await db.insert('users', user.toMap(), conflictAlgorithm: sqflite.ConflictAlgorithm.replace);
+    
+    // Return the user with the new ID
     return user.copyWith(id: id);
   }
 
@@ -95,23 +64,6 @@ class DatabaseService {
       debugPrint('Error getting user: $e');
       return null;
     }
-  }
-
-  // Save completed meditation session
-  Future<void> saveMeditationSession(MeditationSession session, int userId) async {
-    final db = await database;
-    await db.insert(
-      'meditation_sessions',
-      {
-        'title': session.title,
-        'duration': session.duration,
-        'completed_at': session.completedAt.toIso8601String(),
-        'is_favorite': session.isFavorite ? 1 : 0,
-        'user_id': userId,
-      },
-      conflictAlgorithm: sqflite.ConflictAlgorithm.replace,
-    );
-    debugPrint('Saved meditation session for user: $userId');
   }
 
   // Get all favorite sessions
@@ -183,27 +135,37 @@ class DatabaseService {
     }
   }
 
-  Future<void> updateUserStats(int userId, {int? addMinutes, bool incrementSession = false}) async {
+  Future<void> updateUserStats(int userId, {int addMinutes = 0, bool incrementSession = false, int malasCount = 0}) async {
     final db = await database;
-    final currentStats = await getUserStats(userId);
 
-    // Check if the user already has stats
-    if (currentStats.isNotEmpty) {
+    // Check if user stats exist
+    final List<Map<String, dynamic>> existingStats = await db.query(
+      'user_stats',
+      where: 'user_id = ?',
+      whereArgs: [userId],
+    );
+
+    if (existingStats.isNotEmpty) {
+      // Update existing stats
       await db.update(
         'user_stats',
         {
-          'total_minutes': (currentStats['total_minutes'] ?? 0) + (addMinutes ?? 0),
-          'total_sessions': (currentStats['total_sessions'] ?? 0) + (incrementSession ? 1 : 0),
+          'total_minutes': existingStats.first['total_minutes'] + addMinutes,
+          'total_sessions': existingStats.first['total_sessions'] + (incrementSession ? 1 : 0),
+          'total_malas': existingStats.first['total_malas'] + malasCount,
+          'total_duration': existingStats.first['total_duration'] + addMinutes,
         },
         where: 'user_id = ?',
         whereArgs: [userId],
       );
     } else {
-      // If no stats exist, insert a new record
+      // Insert new stats
       await db.insert('user_stats', {
         'user_id': userId,
-        'total_minutes': addMinutes ?? 0,
+        'total_minutes': addMinutes,
         'total_sessions': incrementSession ? 1 : 0,
+        'total_malas': malasCount,
+        'total_duration': addMinutes,
       });
     }
   }
@@ -251,27 +213,6 @@ class DatabaseService {
     return user;
   }
 
-  Future<List<MeditationSession>> getUserSessions(int userId) async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      'meditation_sessions',
-      where: 'user_id = ?',
-      whereArgs: [userId],
-      orderBy: 'completed_at DESC',
-    );
-    
-    debugPrint('Found ${maps.length} sessions for user: $userId');
-    return List.generate(maps.length, (i) {
-      return MeditationSession(
-        id: maps[i]['id'],
-        title: maps[i]['title'],
-        duration: maps[i]['duration'],
-        completedAt: DateTime.parse(maps[i]['completed_at']),
-        isFavorite: maps[i]['is_favorite'] == 1,
-      );
-    });
-  }
-
   Future<void> _onUpgrade(sqflite.Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       // Add the total_minutes and total_sessions columns if they don't exist
@@ -282,18 +223,33 @@ class DatabaseService {
 
   Future<void> _onCreate(sqflite.Database db, int version) async {
     await db.execute('''
+      CREATE TABLE IF NOT EXISTS users(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        profile_image TEXT,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
       CREATE TABLE IF NOT EXISTS user_stats(
         user_id INTEGER PRIMARY KEY,
         total_minutes INTEGER DEFAULT 0,
-        total_sessions INTEGER DEFAULT 0
+        total_sessions INTEGER DEFAULT 0,
+        total_malas INTEGER DEFAULT 0,
+        total_duration INTEGER DEFAULT 0,
+        FOREIGN KEY (user_id) REFERENCES users (id)
       )
     ''');
+    
+    debugPrint('All tables created successfully');
   }
 
   Future<int> getTotalMalas(int userId) async {
     final db = await database;
     final List<Map<String, dynamic>> sessions = await db.query(
-      'meditation_sessions',
+      'user_stats',
       where: 'user_id = ?',
       whereArgs: [userId],
     );

@@ -20,6 +20,8 @@ class _ProfileScreenState extends State<ProfileScreen> with AuthRequiredMixin {
   Map<String, dynamic>? _stats;
   bool _isLoading = true;
   int? _malas;
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
 
   @override
   void initState() {
@@ -46,6 +48,7 @@ class _ProfileScreenState extends State<ProfileScreen> with AuthRequiredMixin {
       
       if (userId != null && isLoggedIn) {
         final user = await DatabaseService().getUser(userId);
+        final stats = await DatabaseService().getUserStats(userId);
         
         if (user == null) {
           // User not found in database, clear preferences and redirect
@@ -64,8 +67,6 @@ class _ProfileScreenState extends State<ProfileScreen> with AuthRequiredMixin {
           return;
         }
 
-        final stats = await DatabaseService().getUserStats(userId);
-        
         if (mounted) {
           setState(() {
             _user = user;
@@ -117,7 +118,38 @@ class _ProfileScreenState extends State<ProfileScreen> with AuthRequiredMixin {
       setState(() {
         _malas = totalMalas;
       });
+      debugPrint('Fetched total malas: $_malas');
     }
+  }
+
+  Future<void> _signUp() async {
+    // Assuming you have a method to get user details
+    User newUser = await getUserDetails();
+
+    // Debugging
+    debugPrint('Signing up user: ${newUser.toMap()}');
+
+    try {
+      await DatabaseService().createUser(newUser);
+      // Proceed with the sign-up process
+    } catch (e) {
+      debugPrint('Error during sign-up: $e');
+      // Handle the error appropriately
+    }
+  }
+
+  Future<User> getUserDetails() async {
+    // Assuming you have some way to get user input, e.g., from text fields
+    String name = _nameController.text; // Replace with your actual input method
+    String email = _emailController.text; // Replace with your actual input method
+
+    // Create and return a User object
+    return User(
+      name: name,
+      email: email,
+      profileImage: null, // or provide a default image if applicable
+      createdAt: DateTime.now().toIso8601String(),
+    );
   }
 
   @override
@@ -204,7 +236,7 @@ class _ProfileScreenState extends State<ProfileScreen> with AuthRequiredMixin {
     final stats = [
       {
         'title': 'Total Time',
-        'value': _formatDuration(_stats?['total_time'] ?? 0),
+        'value': _formatDuration(_stats?['total_minutes'] ?? 0),
         'icon': Icons.timer,
         'color': Colors.indigo,
       },
@@ -215,22 +247,10 @@ class _ProfileScreenState extends State<ProfileScreen> with AuthRequiredMixin {
         'color': Colors.teal,
       },
       {
-        'title': 'Minutes Meditated',
-        'value': '${_stats?['minutes_meditated'] ?? 0}',
-        'icon': Icons.timer_outlined,
-        'color': Colors.orange,
-      },
-      {
         'title': 'Sessions Completed',
-        'value': '${_stats?['sessions_completed'] ?? 0}',
+        'value': '${_stats?['total_sessions'] ?? 0}',
         'icon': Icons.check_circle_outline,
         'color': Colors.indigo,
-      },
-      {
-        'title': 'Current Streak',
-        'value': '${_stats?['current_streak'] ?? 0}',
-        'icon': Icons.local_fire_department_outlined,
-        'color': Colors.teal,
       },
     ];
 

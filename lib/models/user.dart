@@ -3,15 +3,15 @@ class User {
   final String name;
   final String email;
   final String? profileImage;
-  final DateTime createdAt;
+  final String createdAt;
 
   User({
     this.id,
     required this.name,
     required this.email,
     this.profileImage,
-    DateTime? createdAt,
-  }) : createdAt = createdAt ?? DateTime.now();
+    required this.createdAt,
+  });
 
   Map<String, dynamic> toMap() {
     return {
@@ -19,7 +19,7 @@ class User {
       'name': name,
       'email': email,
       'profile_image': profileImage,
-      'created_at': createdAt.toIso8601String(),
+      'created_at': createdAt,
     };
   }
 
@@ -29,7 +29,7 @@ class User {
       name: map['name'],
       email: map['email'],
       profileImage: map['profile_image'],
-      createdAt: DateTime.parse(map['created_at']),
+      createdAt: map['created_at'],
     );
   }
 
@@ -38,7 +38,7 @@ class User {
     String? name,
     String? email,
     String? profileImage,
-    DateTime? createdAt,
+    String? createdAt,
   }) {
     return User(
       id: id ?? this.id,

@@ -35,6 +35,8 @@ class _SignupScreenState extends State<SignupScreen> {
       final user = User(
         name: _nameController.text,
         email: _emailController.text,
+        profileImage: null,
+        createdAt: DateTime.now().toIso8601String(),
       );
 
       final createdUser = await DatabaseService().createUser(user);
