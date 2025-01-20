@@ -4,6 +4,7 @@ import 'package:just_audio/just_audio.dart';
 import '../models/meditation_session.dart';
 import '../services/database_service.dart';
 import '../widgets/theme_background.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MeditationSessionScreen extends StatefulWidget {
   final String title;
@@ -92,21 +93,26 @@ class _MeditationSessionScreenState extends State<MeditationSessionScreen> {
   }
 
   void _showCompletionDialog() async {
-    final dbService = DatabaseService();
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('userId');
     
-    // Save session
-    await dbService.saveMeditationSession(
-      MeditationSession(
-        title: widget.title,
-        duration: int.parse(widget.duration.split(' ')[0]),
-        completedAt: DateTime.now(),
-      ),
-    );
-    
-    // Update stats
-    await dbService.updateUserStats(
-      int.parse(widget.duration.split(' ')[0]),
-    );
+    if (userId != null) {
+      final dbService = DatabaseService();
+      await dbService.saveMeditationSession(
+        MeditationSession(
+          title: widget.title,
+          duration: int.parse(widget.duration.split(' ')[0]),
+          completedAt: DateTime.now(),
+        ),
+        userId,
+      );
+      
+      await dbService.updateUserStats(
+        userId,
+        addMinutes: int.parse(widget.duration.split(' ')[0]),
+        incrementSession: true,
+      );
+    }
 
     // Show dialog
     if (!mounted) return;
@@ -146,7 +152,7 @@ class _MeditationSessionScreenState extends State<MeditationSessionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: ThemeBackground(
         child: SafeArea(
           child: Column(

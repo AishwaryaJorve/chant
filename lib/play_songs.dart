@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
 class AudioPlayerScreen extends StatefulWidget {
+  const AudioPlayerScreen({super.key});
+
   @override
   _AudioPlayerScreenState createState() => _AudioPlayerScreenState();
 }
@@ -55,7 +57,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Audio Player')),
+      appBar: AppBar(title: const Text('Audio Player')),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -65,10 +67,10 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
               icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
               onPressed: _isPlaying ? _pause : _play,
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _stop,
-              child: Text('Stop'),
+              child: const Text('Stop'),
             ),
           ],
         ),

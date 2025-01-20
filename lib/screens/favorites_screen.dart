@@ -23,7 +23,7 @@ class FavoritesScreen extends StatelessWidget {
                 child: Text(
                   'Favorites',
                   style: TextStyle(
-                    color: colorScheme.onBackground,
+                    color: colorScheme.onSurface,
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
                   ),
@@ -68,7 +68,7 @@ class FavoritesScreen extends StatelessWidget {
                             Text(
                               'No favorites yet',
                               style: TextStyle(
-                                color: colorScheme.onBackground.withOpacity(0.7),
+                                color: colorScheme.onSurface.withOpacity(0.7),
                                 fontSize: 18,
                               ),
                             ),
@@ -92,7 +92,10 @@ class FavoritesScreen extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: const BottomNav(currentIndex: 2),
+      bottomNavigationBar: BottomNav(
+        currentIndex: 2,
+        totalMalas: 0,
+      ),
     );
   }
 
@@ -145,7 +148,7 @@ class FavoritesScreen extends StatelessWidget {
                     Text(
                       session.title,
                       style: TextStyle(
-                        color: colorScheme.onBackground,
+                        color: colorScheme.onSurface,
                         fontSize: 18,
                         fontWeight: FontWeight.w500,
                       ),
@@ -154,7 +157,7 @@ class FavoritesScreen extends StatelessWidget {
                     Text(
                       '${session.duration} minutes • ${_formatDate(session.completedAt)}',
                       style: TextStyle(
-                        color: colorScheme.onBackground.withOpacity(0.7),
+                        color: colorScheme.onSurface.withOpacity(0.7),
                         fontSize: 14,
                       ),
                     ),
@@ -163,7 +166,7 @@ class FavoritesScreen extends StatelessWidget {
               ),
               Icon(
                 Icons.chevron_right,
-                color: colorScheme.onBackground.withOpacity(0.5),
+                color: colorScheme.onSurface.withOpacity(0.5),
               ),
             ],
           ),

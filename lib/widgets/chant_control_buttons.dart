@@ -32,11 +32,11 @@ class ChantControlButtons extends StatelessWidget {
                 ),
                 elevation: 0,
               ).copyWith(
-                overlayColor: MaterialStateProperty.resolveWith((states) {
-                  if (states.contains(MaterialState.pressed)) {
+                overlayColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.pressed)) {
                     return Colors.white.withOpacity(0.12);
                   }
-                  if (states.contains(MaterialState.hovered)) {
+                  if (states.contains(WidgetState.hovered)) {
                     return Colors.white.withOpacity(0.08);
                   }
                   return null;
@@ -67,11 +67,11 @@ class ChantControlButtons extends StatelessWidget {
                 ),
                 elevation: 0,
               ).copyWith(
-                overlayColor: MaterialStateProperty.resolveWith((states) {
-                  if (states.contains(MaterialState.pressed)) {
+                overlayColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.pressed)) {
                     return Colors.white.withOpacity(0.12);
                   }
-                  if (states.contains(MaterialState.hovered)) {
+                  if (states.contains(WidgetState.hovered)) {
                     return Colors.white.withOpacity(0.08);
                   }
                   return null;

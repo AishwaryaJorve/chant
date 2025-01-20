@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/theme_background.dart';
 import 'meditation_detail_screen.dart';
+import '../data/daily_quotes.dart';
+import '../mixins/auth_required_mixin.dart';
 
 class StartPage extends StatefulWidget {
   const StartPage({super.key});
@@ -10,9 +12,11 @@ class StartPage extends StatefulWidget {
   State<StartPage> createState() => _StartPageState();
 }
 
-class _StartPageState extends State<StartPage> {
+class _StartPageState extends State<StartPage> with AuthRequiredMixin {
   @override
   Widget build(BuildContext context) {
+    final greeting = _getGreeting();
+    
     return Scaffold(
       backgroundColor: ThemeColors.backgroundColor(context),
       body: SafeArea(
@@ -20,7 +24,7 @@ class _StartPageState extends State<StartPage> {
           padding: const EdgeInsets.all(20.0),
           children: [
             Text(
-              'Good Morning,\nTime to Meditate',
+              '$greeting,\nTime to Meditate',
               style: TextStyle(
                 color: ThemeColors.textColor(context),
                 fontSize: 24,
@@ -36,11 +40,27 @@ class _StartPageState extends State<StartPage> {
           ],
         ),
       ),
-      bottomNavigationBar: const BottomNav(currentIndex: 0),
+      bottomNavigationBar: BottomNav(
+        currentIndex: 0,
+        totalMalas: 0,
+      ),
     );
   }
 
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good Morning';
+    } else if (hour < 17) {
+      return 'Good Afternoon';
+    } else {
+      return 'Good Evening';
+    }
+  }
+
   Widget _buildDailyQuote(bool isDark) {
+    final todayQuote = DailyQuotes.getQuoteOfDay();
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -59,7 +79,7 @@ class _StartPageState extends State<StartPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            '"Peace comes from within. Do not seek it without."',
+            '"${todayQuote.quote}"',
             style: TextStyle(
               color: ThemeColors.textColor(context),
               fontSize: 15,
@@ -67,7 +87,7 @@ class _StartPageState extends State<StartPage> {
           ),
           const SizedBox(height: 4),
           Text(
-            '- Buddha',
+            '- ${todayQuote.author}',
             style: TextStyle(
               color: ThemeColors.secondaryTextColor(context),
               fontSize: 14,
@@ -99,7 +119,7 @@ class _StartPageState extends State<StartPage> {
               _buildRecommendedCard(
                 'Mindful Morning',
                 '10 min',
-                const Color(0xFFE6B587),
+                Colors.orange,
                 Icons.wb_sunny_outlined,
                 isDark,
               ),
@@ -107,7 +127,7 @@ class _StartPageState extends State<StartPage> {
               _buildRecommendedCard(
                 'Deep Sleep',
                 '20 min',
-                const Color(0xFF7EB6BA),
+                Colors.indigo,
                 Icons.nightlight_outlined,
                 isDark,
               ),
@@ -173,6 +193,24 @@ class _StartPageState extends State<StartPage> {
   }
 
   Widget _buildCategoriesSection(bool isDark) {
+    final categories = [
+      {
+        'title': 'Sleep',
+        'icon': Icons.nightlight_outlined,
+        'color': Colors.indigo,
+      },
+      {
+        'title': 'Anxiety',
+        'icon': Icons.healing_outlined,
+        'color': Colors.teal,
+      },
+      {
+        'title': 'Focus',
+        'icon': Icons.lens_outlined,
+        'color': Colors.orange,
+      },
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -186,19 +224,27 @@ class _StartPageState extends State<StartPage> {
         ),
         const SizedBox(height: 16),
         Row(
-          children: [
-            Expanded(child: _buildCategoryCard('Sleep', Icons.nightlight_round, isDark)),
-            const SizedBox(width: 12),
-            Expanded(child: _buildCategoryCard('Anxiety', Icons.favorite_border, isDark)),
-            const SizedBox(width: 12),
-            Expanded(child: _buildCategoryCard('Focus', Icons.grid_3x3, isDark)),
-          ],
+          children: categories.map((category) {
+            return Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  right: category == categories.last ? 0 : 12,
+                ),
+                child: _buildCategoryCard(
+                  category['title'] as String,
+                  category['icon'] as IconData,
+                  category['color'] as Color,
+                  isDark,
+                ),
+              ),
+            );
+          }).toList(),
         ),
       ],
     );
   }
 
-  Widget _buildCategoryCard(String title, IconData icon, bool isDark) {
+  Widget _buildCategoryCard(String title, IconData icon, Color color, bool isDark) {
     return InkWell(
       onTap: () {
         Navigator.push(
@@ -208,15 +254,15 @@ class _StartPageState extends State<StartPage> {
               title: title,
               duration: '15 min',
               icon: icon,
-              color: Theme.of(context).colorScheme.primary,
+              color: color,
             ),
           ),
         );
       },
       child: Container(
-        height: 80,
+        height: 100,
         decoration: BoxDecoration(
-          color: ThemeColors.cardColor(context),
+          color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -224,15 +270,16 @@ class _StartPageState extends State<StartPage> {
           children: [
             Icon(
               icon,
-              color: ThemeColors.textColor(context),
-              size: 24,
+              color: color,
+              size: 38,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
               title,
               style: TextStyle(
-                color: ThemeColors.textColor(context),
-                fontSize: 14,
+                color: color,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],

@@ -12,11 +12,9 @@ class ThemeService {
         primary: primaryPink,
         secondary: secondaryPink,
         surface: Colors.white,
-        background: surfacePink,
         onPrimary: Colors.white,
         onSecondary: Color(0xFF4A4A4A),
         onSurface: Color(0xFF4A4A4A),
-        onBackground: Color(0xFF4A4A4A),
       ),
       scaffoldBackgroundColor: surfacePink,
       cardColor: Colors.white,
@@ -50,17 +48,15 @@ class ThemeService {
       colorScheme: ColorScheme.dark(
         primary: const Color(0xFF9DB5B2),        // Muted sage
         secondary: const Color(0xFFDAA89B),      // Muted terracotta
-        surface: const Color(0xFF1E2324),        // Dark surface
-        background: const Color(0xFF121617),     // Darker background
+        surface: const Color(0xFF1E2324),     // Darker background
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: Colors.white.withOpacity(0.87),
-        onBackground: Colors.white.withOpacity(0.87),
       ),
-      scaffoldBackgroundColor: Color(0xFF121617),
-      cardColor: Color(0xFF1E2324),
+      scaffoldBackgroundColor: const Color(0xFF121617),
+      cardColor: const Color(0xFF1E2324),
       dividerColor: Colors.white12,
-      iconTheme: IconThemeData(
+      iconTheme: const IconThemeData(
         color: Color(0xFF9DB5B2),
         size: 24,
         opacity: 0.87,

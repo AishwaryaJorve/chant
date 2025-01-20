@@ -1,10 +1,10 @@
-import 'package:chants/models/app_theme.dart';
-import 'package:chants/widgets/chant_control_buttons.dart';
-import 'package:chants/widgets/chant_info_buttons.dart';
 import 'package:flutter/material.dart';
-import '../models/chant_model.dart';
-import '../services/timer_service.dart';
-import '../widgets/chant_counter_button.dart'; // Import the new widget
+import '../widgets/bottom_nav.dart';
+import 'dart:async';
+import '../mixins/auth_required_mixin.dart';
+import '../widgets/theme_background.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/database_service.dart';
 
 class ChantScreen extends StatefulWidget {
   const ChantScreen({super.key});
@@ -13,119 +13,270 @@ class ChantScreen extends StatefulWidget {
   State<ChantScreen> createState() => _ChantScreenState();
 }
 
-class _ChantScreenState extends State<ChantScreen> {
-  final ChantModel chantModel = ChantModel();
-  final TimerService timerService = TimerService();
+class _ChantScreenState extends State<ChantScreen>
+    with SingleTickerProviderStateMixin, AuthRequiredMixin {
+  int _count = 0;
+  int _malas = 0;
+  bool _isTimerRunning = false;
+  Duration _elapsed = Duration.zero;
+  Timer? _timer;
+  late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _fetchTotalMalas();
   }
 
-  void incrementCount() {
-    setState(() {
-      chantModel.incrementCount();
-      if (!chantModel.isTimerRunning) {
-        chantModel.isTimerRunning = true;
-        timerService.startTimer(onTick: (elapsed) {
-          setState(() {
-            chantModel.elapsed = elapsed;
-            chantModel.masterElapsed = elapsed;
-          });
-        });
-      }
-    });
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _animationController.dispose();
+    super.dispose();
   }
 
-  void reset() {
-    setState(() {
-      chantModel.reset();
-      timerService.resetTimer();
-    });
-  }
-
-  void toggleTimer() {
-    setState(() {
-      if (chantModel.isTimerRunning) {
-        pauseTimer();
-      } else {
-        startTimer();
-      }
-    });
-  }
-
-  void startTimer() {
-    chantModel.isTimerRunning = true;
-    timerService.startTimer(onTick: (elapsed) {
+  void _startTimer() {
+    setState(() => _isTimerRunning = true);
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
-        chantModel.elapsed = elapsed;
-        chantModel.masterElapsed = elapsed;
+        _elapsed += const Duration(seconds: 1);
       });
     });
   }
 
-  void pauseTimer() {
+  void _stopTimer() {
+    _timer?.cancel();
+    setState(() => _isTimerRunning = false);
+  }
+
+  void _resetCounter() {
     setState(() {
-      chantModel.isTimerRunning = false;
-      timerService.stopTimer();
+      _count = 0;
+      _elapsed = Duration.zero;
+      _isTimerRunning = false;
     });
+    _timer?.cancel();
+  }
+
+  void _incrementCount() async {
+    if (!_isTimerRunning) {
+      _startTimer();
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('userId');
+
+    setState(() {
+      _count++;
+      if (_count % 108 == 0) {
+        _malas++;
+        _count = 0;
+
+        // Save session time before resetting
+        if (userId != null) {
+           DatabaseService().updateUserStats(
+            userId,
+            addMinutes: _elapsed.inMinutes,
+            incrementSession: true,
+          );
+        }
+
+        // Reset timer
+        _elapsed = Duration.zero;
+        _timer?.cancel();
+        _isTimerRunning = false;
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Completed $_malas malas! 🎉'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    });
+    _animationController
+      ..reset()
+      ..forward();
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = twoDigits(duration.inHours);
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return "$hours:$minutes:$seconds";
+  }
+
+  Future<void> _fetchTotalMalas() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('userId');
+
+    if (userId != null) {
+      final totalMalas = await DatabaseService().getTotalMalas(userId);
+      setState(() {
+        _malas = totalMalas; // Update the state with the fetched malas
+      });
+      debugPrint('Fetched total malas: $_malas'); // Debug statement
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Accessing the color scheme based on the current theme (light or dark)
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
-      body: Container(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Displaying elapsed time
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.access_time_rounded,
-                  color: colorScheme.onSurface, // Using theme's text color
-                  size: 24,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  TimerService.formatDuration(chantModel.elapsed),
-                  style: TextStyle(
-                    fontSize: 24.0,
-                    color: colorScheme.onSurface, // Using theme's text color
+      backgroundColor: ThemeColors.backgroundColor(context),
+      body: ThemeBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Header with Timer
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(30),
+                    bottomRight: Radius.circular(30),
                   ),
                 ),
-              ],
+                child: Column(
+                  children: [
+                    Text(
+                      'Chanting Session',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: ThemeColors.textColor(context),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _formatDuration(_elapsed),
+                      style: const TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w300,
+                        color: Colors.orange,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Main Counter Area
+              Expanded(
+                child: GestureDetector(
+                  onTap: _incrementCount,
+                  child: Container(
+                    margin: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.indigo.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            _count.toString(),
+                            style: const TextStyle(
+                              fontSize: 72,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.indigo,
+                            ),
+                          ),
+                          Text(
+                            'Tap to Count',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.indigo.withOpacity(0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Stats Cards
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    _buildStatBox('Malas', _malas),
+                    const SizedBox(width: 16),
+                    _buildStatBox('Chants', _count),
+                  ],
+                ),
+              ),
+
+              // Control Panel
+              Container(
+                margin: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildControlIcon(
+                      Icons.refresh,
+                      'Reset',
+                      Colors.red.shade300,
+                      _resetCounter,
+                    ),
+                    _buildControlIcon(
+                      _isTimerRunning ? Icons.pause : Icons.play_arrow,
+                      _isTimerRunning ? 'Pause' : 'Start',
+                      Colors.teal,
+                      _isTimerRunning ? _stopTimer : _startTimer,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: BottomNav(
+        currentIndex: 2,
+        totalMalas: _malas,
+      ),
+    );
+  }
+
+  Widget _buildStatBox(String label, int value) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value.toString(),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: ThemeColors.textColor(context),
+              ),
             ),
-
-            const SizedBox(height: 20),
-
-            // Counter display with border color from theme
-            CounterDisplay(
-              count: chantModel.count,
-              onTap: incrementCount,
-              borderColor: colorScheme.primary, // Using theme's primary color
-            ),
-
-            const SizedBox(height: 20),
-
-            // Chant info buttons with dynamic styling
-            ChantInfoButtons(
-              malasCount: chantModel.malasCount,
-              masterCount: chantModel.masterCount,
-              elapsedTime: chantModel.masterElapsed,
-            ),
-
-            const SizedBox(height: 20),
-
-            // Chant control buttons
-            ChantControlButtons(
-              onReset: reset,
-              onToggleTimer: toggleTimer,
-              isTimerRunning: chantModel.isTimerRunning,
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                color: ThemeColors.secondaryTextColor(context),
+              ),
             ),
           ],
         ),
@@ -133,9 +284,57 @@ class _ChantScreenState extends State<ChantScreen> {
     );
   }
 
-  @override
-  void dispose() {
-    timerService.stopTimer();
-    super.dispose();
+  Widget _buildControlIcon(
+      IconData icon, String label, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 32),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
+}
+
+// Background Pattern Painter
+class CirclePatternPainter extends CustomPainter {
+  final Color color;
+
+  CirclePatternPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final radius = size.width / 12;
+    for (var i = 0; i < size.height / (radius * 3); i++) {
+      for (var j = 0; j < size.width / (radius * 3); j++) {
+        canvas.drawCircle(
+          Offset(j * radius * 3 + radius, i * radius * 3 + radius),
+          radius / 2,
+          paint,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

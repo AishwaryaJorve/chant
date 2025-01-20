@@ -1,88 +1,55 @@
 import 'package:flutter/material.dart';
-import '../screens/profile_screen.dart';
-import '../screens/start.dart';
-import '../screens/favorites_screen.dart';
 
 class BottomNav extends StatelessWidget {
   final int currentIndex;
-  
-  const BottomNav({
-    super.key,
-    required this.currentIndex,
-  });
+  final int totalMalas;
+
+  const BottomNav({super.key, required this.currentIndex, required this.totalMalas});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFF1A1A1A),
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildNavItem(
-            context,
-            Icons.home,
-            currentIndex == 0,
-            () => _navigateToPage(context, 0),
-          ),
-          _buildNavItem(
-            context,
-            Icons.search,
-            currentIndex == 1,
-            () => _navigateToPage(context, 1),
-          ),
-          _buildNavItem(
-            context,
-            Icons.favorite_border,
-            currentIndex == 2,
-            () => _navigateToPage(context, 2),
-          ),
-          _buildNavItem(
-            context,
-            Icons.person_outline,
-            currentIndex == 3,
-            () => _navigateToPage(context, 3),
-          ),
-        ],
-      ),
+    return NavigationBar(
+      selectedIndex: currentIndex,
+      onDestinationSelected: (index) {
+        if (index == currentIndex) return;
+        
+        switch (index) {
+          case 0:
+            Navigator.pushReplacementNamed(context, '/home');
+            break;
+          case 1:
+            Navigator.pushReplacementNamed(context, '/search');
+            break;
+          case 2:
+            Navigator.pushReplacementNamed(context, '/chants');
+            break;
+          case 3:
+            Navigator.pushReplacementNamed(context, '/profile');
+            break;
+        }
+      },
+      destinations: const [
+        NavigationDestination(
+          icon: Icon(Icons.home_outlined),
+          selectedIcon: Icon(Icons.home),
+          label: 'Home',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.search_outlined),
+          selectedIcon: Icon(Icons.search),
+          label: 'Search',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.spa_outlined),
+          selectedIcon: Icon(Icons.spa),
+          label: 'Chants',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.person_outline),
+          selectedIcon: Icon(Icons.person),
+          label: 'Profile',
+        ),
+      ],
     );
-  }
-
-  Widget _buildNavItem(
-    BuildContext context,
-    IconData icon,
-    bool isSelected,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      child: Icon(
-        icon,
-        color: isSelected ? Colors.white : Colors.white38,
-        size: 28,
-      ),
-    );
-  }
-
-  void _navigateToPage(BuildContext context, int index) {
-    if (index == currentIndex) return;
-
-    switch (index) {
-      case 0:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const StartPage()),
-        );
-      case 2:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const FavoritesScreen()),
-        );
-      case 3:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const ProfileScreen()),
-        );
-    }
   }
 } 
