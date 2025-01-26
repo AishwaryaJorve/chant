@@ -119,9 +119,9 @@ class _ChantScreenState extends State<ChantScreen>
     if (userId != null) {
       final totalMalas = await DatabaseService().getTotalMalas(userId);
       setState(() {
-        _malas = totalMalas; // Update the state with the fetched malas
+        _malas = totalMalas > 0 ? totalMalas : 0; // Ensure it's never negative
       });
-      debugPrint('Fetched total malas: $_malas'); // Debug statement
+      debugPrint('Fetched total malas: $_malas');
     }
   }
 

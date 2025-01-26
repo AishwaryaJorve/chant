@@ -12,22 +12,37 @@ import 'package:sqflite/sqflite.dart' as sqflite;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Remove or comment out the integrity check
+  // await DatabaseService().checkDatabaseIntegrity();
+  
+  // Load the theme mode before running the app
+  final themeMode = await ThemeService.loadThemeMode();
+  
   final prefs = await SharedPreferences.getInstance();
   final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
   
-  runApp(MyApp(initialRoute: isLoggedIn ? '/home' : '/welcome'));
+  runApp(MyApp(
+    initialRoute: isLoggedIn ? '/home' : '/welcome',
+    initialThemeMode: themeMode,
+  ));
 }
 
 class MyApp extends StatelessWidget {
   final String initialRoute;
+  final ThemeMode initialThemeMode;
   
-  const MyApp({super.key, required this.initialRoute});
+  const MyApp({
+    super.key, 
+    required this.initialRoute,
+    required this.initialThemeMode,
+  });
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Meditation App',
-      themeMode: ThemeMode.system,
+      themeMode: initialThemeMode, // Use the initial theme mode
       theme: ThemeService.lightTheme,
       darkTheme: ThemeService.darkTheme,
       initialRoute: initialRoute,

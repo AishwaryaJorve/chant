@@ -1,6 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeService {
+  static final ThemeService _instance = ThemeService._internal();
+  factory ThemeService() => _instance;
+  ThemeService._internal();
+
+  static ThemeMode _currentThemeMode = ThemeMode.system;
+
+  static ThemeMode get currentThemeMode => _currentThemeMode;
+
+  static ThemeMode getThemeMode() => _currentThemeMode;
+
+  static Future<void> setThemeMode(ThemeMode themeMode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('themeMode', themeMode.index);
+    _currentThemeMode = themeMode;
+  }
+
+  static Future<ThemeMode> loadThemeMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    final themeModeIndex = prefs.getInt('themeMode') ?? ThemeMode.system.index;
+    _currentThemeMode = ThemeMode.values[themeModeIndex];
+    return _currentThemeMode;
+  }
+
+  static ThemeMode getInitialThemeMode() {
+    return _currentThemeMode;
+  }
+
+  static List<ThemeMode> getThemeModes() {
+    return [
+      ThemeMode.system,
+      ThemeMode.light,
+      ThemeMode.dark,
+    ];
+  }
+
   static ThemeData get lightTheme {
     const primaryPink = Color(0xFFFF8BA7);    // Soft pink
     const secondaryPink = Color(0xFFFFC6C7);  // Lighter pink

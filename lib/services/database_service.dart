@@ -16,30 +16,53 @@ class DatabaseService {
   Future<sqflite.Database> _initDB() async {
     String dbPath = path.join(await sqflite.getDatabasesPath(), 'meditation_app.db');
     
-    // Delete existing database to force recreation
-    await sqflite.deleteDatabase(dbPath);
-    
     return await sqflite.openDatabase(
       dbPath,
-      version: 4, // Increment this version if you added new tables
+      version: 4, // Keep track of database version
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
+      onConfigure: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
     );
   }
 
   Future<User> createUser(User user) async {
     final db = await database;
 
-    // Check if user object is null or has required fields
-    if (user == null || user.name.isEmpty || user.email.isEmpty) {
-      throw Exception('User object or required fields are null');
-    }
+    try {
+      if (user.name.isEmpty || user.email.isEmpty) {
+        throw Exception('User object or required fields are null');
+      }
 
-    // Insert the user and get the ID
-    final id = await db.insert('users', user.toMap(), conflictAlgorithm: sqflite.ConflictAlgorithm.replace);
-    
-    // Return the user with the new ID
-    return user.copyWith(id: id);
+      final existingUser = await getUserByEmail(user.email);
+      if (existingUser != null) {
+        throw Exception('User with this email already exists');
+      }
+
+      final id = await db.insert(
+        'users', 
+        user.toMap(), 
+        conflictAlgorithm: sqflite.ConflictAlgorithm.fail,
+      );
+      
+      await db.insert(
+        'user_stats', 
+        {
+          'user_id': id,
+          'total_minutes': 0,
+          'total_sessions': 0,
+          'total_malas': 0,
+          'total_duration': 0,
+        },
+        conflictAlgorithm: sqflite.ConflictAlgorithm.replace,
+      );
+      
+      return user.copyWith(id: id);
+    } catch (e) {
+      debugPrint('Error creating user: $e');
+      rethrow;
+    }
   }
 
   Future<User?> getUser(int id) async {
@@ -66,7 +89,6 @@ class DatabaseService {
     }
   }
 
-  // Get all favorite sessions
   Future<List<MeditationSession>> getFavoriteSessions() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
@@ -88,7 +110,6 @@ class DatabaseService {
   Future<Map<String, dynamic>> getUserStats(int userId) async {
     final db = await database;
     try {
-      // First try to get existing stats
       final stats = await db.query(
         'user_stats',
         where: 'user_id = ?',
@@ -97,40 +118,47 @@ class DatabaseService {
 
       if (stats.isEmpty) {
         debugPrint('Creating new stats for user: $userId');
-        // Try to insert new stats
         try {
-          await db.insert('user_stats', {
-            'user_id': userId,
-            'total_minutes': 0,
-            'total_sessions': 0,
-          });
-        } catch (e) {
-          debugPrint('Error inserting stats: $e');
-          // If insert fails, try to get stats again
-          final retryStats = await db.query(
+          await db.insert(
+            'user_stats', 
+            {
+              'user_id': userId,
+              'total_minutes': 0,
+              'total_sessions': 0,
+              'total_malas': 0,
+              'total_duration': 0,
+            },
+            conflictAlgorithm: sqflite.ConflictAlgorithm.replace,
+          );
+
+          final newStats = await db.query(
             'user_stats',
             where: 'user_id = ?',
             whereArgs: [userId],
           );
-          if (retryStats.isNotEmpty) {
-            return retryStats.first;
-          }
+
+          return newStats.first;
+        } catch (e) {
+          debugPrint('Error inserting stats: $e');
+          return {
+            'user_id': userId,
+            'total_minutes': 0,
+            'total_sessions': 0,
+            'total_malas': 0,
+            'total_duration': 0,
+          };
         }
-        
-        return {
-          'total_minutes': 0,
-          'total_sessions': 0,
-        };
       }
 
-      debugPrint('Found existing stats for user: $userId');
       return stats.first;
     } catch (e) {
-      debugPrint('Error in getUserStats: $e');
-      // Return default stats if everything fails
+      debugPrint('Error fetching user stats: $e');
       return {
+        'user_id': userId,
         'total_minutes': 0,
         'total_sessions': 0,
+        'total_malas': 0,
+        'total_duration': 0,
       };
     }
   }
@@ -138,7 +166,6 @@ class DatabaseService {
   Future<void> updateUserStats(int userId, {int addMinutes = 0, bool incrementSession = false, int malasCount = 0}) async {
     final db = await database;
 
-    // Check if user stats exist
     final List<Map<String, dynamic>> existingStats = await db.query(
       'user_stats',
       where: 'user_id = ?',
@@ -146,7 +173,6 @@ class DatabaseService {
     );
 
     if (existingStats.isNotEmpty) {
-      // Update existing stats
       await db.update(
         'user_stats',
         {
@@ -159,7 +185,6 @@ class DatabaseService {
         whereArgs: [userId],
       );
     } else {
-      // Insert new stats
       await db.insert('user_stats', {
         'user_id': userId,
         'total_minutes': addMinutes,
@@ -199,23 +224,28 @@ class DatabaseService {
 
   Future<User?> getUserByEmailAndPassword(String email, String password) async {
     final db = await database;
-    final maps = await db.query(
-      'users',
-      where: 'email = ?',
-      whereArgs: [email],
-    );
+    try {
+      final maps = await db.query(
+        'users',
+        where: 'email = ?',
+        whereArgs: [email],
+      );
 
-    debugPrint('Found ${maps.length} users with email: $email');
-    if (maps.isEmpty) return null;
-    
-    final user = User.fromMap(maps.first);
-    debugPrint('Logging in user: ${user.name} with ID: ${user.id}');
-    return user;
+      debugPrint('Found ${maps.length} users with email: $email');
+      if (maps.isEmpty) return null;
+      
+      final user = User.fromMap(maps.first);
+      
+      debugPrint('Logging in user: ${user.name} with ID: ${user.id}');
+      return user;
+    } catch (e) {
+      debugPrint('Error during login: $e');
+      return null;
+    }
   }
 
   Future<void> _onUpgrade(sqflite.Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      // Add the total_minutes and total_sessions columns if they don't exist
       await db.execute('ALTER TABLE user_stats ADD COLUMN total_minutes INTEGER DEFAULT 0');
       await db.execute('ALTER TABLE user_stats ADD COLUMN total_sessions INTEGER DEFAULT 0');
     }
@@ -254,7 +284,54 @@ class DatabaseService {
       whereArgs: [userId],
     );
 
-    // Count the number of completed malas (assuming each session is a mala)
-    return sessions.length; // Adjust this logic if needed
+    return sessions.isNotEmpty ? (sessions.first['total_malas'] ?? 0) : 0;
+  }
+
+  Future<void> checkDatabaseIntegrity() async {
+    final db = await database;
+    try {
+      final result = await db.rawQuery('PRAGMA integrity_check');
+      
+      if (result.isNotEmpty) {
+        final integrityResult = result.first['integrity_check'] as String;
+        if (integrityResult != 'ok') {
+          debugPrint('Database integrity check failed: $integrityResult');
+        } else {
+          debugPrint('Database integrity check passed');
+        }
+      }
+    } catch (e) {
+      debugPrint('Unexpected error during database integrity check: $e');
+    }
+  }
+
+  Future<void> deleteUser(int userId) async {
+    final db = await database;
+    
+    try {
+      // Delete user stats
+      await db.delete(
+        'user_stats',
+        where: 'user_id = ?',
+        whereArgs: [userId],
+      );
+
+      // Delete meditation sessions
+      await db.delete(
+        'meditation_sessions',
+        where: 'user_id = ?',
+        whereArgs: [userId],
+      );
+
+      // Delete user
+      await db.delete(
+        'users',
+        where: 'id = ?',
+        whereArgs: [userId],
+      );
+    } catch (e) {
+      debugPrint('Error deleting user: $e');
+      rethrow;
+    }
   }
 } 

@@ -24,38 +24,33 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final user = await DatabaseService().getUserByEmailAndPassword(
-        _emailController.text,
-        _passwordController.text,
-      );
-      
-      if (user != null) {
-        debugPrint('Login successful for user: ${user.toMap()}');
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isLoggedIn', true);
-        await prefs.setInt('userId', user.id!);
-        
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, '/profile');
-        }
-      } else {
-        throw Exception('Invalid email or password');
-      }
-    } catch (e) {
-      debugPrint('Login error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
+    if (_formKey.currentState!.validate()) {
+      try {
+        final user = await DatabaseService().getUserByEmailAndPassword(
+          _emailController.text.trim(), 
+          _passwordController.text.trim()
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
+
+        if (user != null) {
+          // Save login state
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('isLoggedIn', true);
+          await prefs.setInt('userId', user.id!);
+
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, '/home');
+          }
+        } else {
+          // Show more specific error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Invalid email or password')),
+          );
+        }
+      } catch (e) {
+        debugPrint('Login error: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Login failed: ${e.toString()}')),
+        );
       }
     }
   }
