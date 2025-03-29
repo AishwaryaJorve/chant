@@ -19,7 +19,8 @@ class MeditationSessionScreen extends StatefulWidget {
   });
 
   @override
-  State<MeditationSessionScreen> createState() => _MeditationSessionScreenState();
+  State<MeditationSessionScreen> createState() =>
+      _MeditationSessionScreenState();
 }
 
 class _MeditationSessionScreenState extends State<MeditationSessionScreen> {
@@ -35,79 +36,36 @@ class _MeditationSessionScreenState extends State<MeditationSessionScreen> {
   void initState() {
     super.initState();
     _timeLeft = int.parse(widget.duration.split(' ')[0]) * 60;
-    _startTimer();
     _initAudio();
-  }
-
-  Future<void> _initAudio() async {
-    // Load and loop background sound
-    try {
-      await _audioPlayer.setAsset('assets/audio/meditation_baground.mp3');
-      await _audioPlayer.setLoopMode(LoopMode.one);
-      await _audioPlayer.play();
-    } catch (e) {
-      debugPrint('Error loading audio: $e');
-    }
-  }
-
-  @override
-  void dispose() {
-    _timer.cancel();
-    _audioPlayer.dispose();
-    super.dispose();
-  }
-
-  void _startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_timeLeft > 0 && isPlaying) {
-        setState(() {
-          _timeLeft--;
-        });
-      } else if (_timeLeft == 0) {
-        timer.cancel();
-        // Show completion dialog
-        _showCompletionDialog();
-      }
+    _startTimer();
+    _sessionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _elapsedSeconds++;
+      });
     });
   }
 
-  void _togglePlayPause() {
-    setState(() {
-      isPlaying = !isPlaying;
-    });
-  }
-
-  void _toggleSound() {
-    setState(() {
-      isSoundOn = !isSoundOn;
-      if (isSoundOn) {
-        _audioPlayer.play();
-      } else {
-        _audioPlayer.pause();
-      }
-    });
-  }
-
-  String _formatTime(int seconds) {
-    int minutes = seconds ~/ 60;
-    int remainingSeconds = seconds % 60;
-    return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
-  }
-
+  // Fix _showCompletionDialog method
   void _showCompletionDialog() async {
+    _timer.cancel();
+    await _endSession();
+
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getInt('userId');
-    
+
     if (userId != null) {
       final dbService = DatabaseService();
-      await dbService.updateUserStats(
-        userId: userId,
-        addMinutes: int.parse(widget.duration.split(' ')[0]),
-        incrementSession: true,
-      );
+      // Create meditation session record
+      await dbService.createMeditationSession(
+          MeditationSession(
+            title: widget.title,
+            duration: int.parse(widget.duration.split(' ')[0]),
+            completedAt: DateTime.now(),
+            isFavorite: false,
+          ),
+          userId);
     }
 
-    // Show dialog
     if (!mounted) return;
     showDialog(
       context: context,
@@ -142,42 +100,86 @@ class _MeditationSessionScreenState extends State<MeditationSessionScreen> {
     );
   }
 
-  void _startSession() {
-    _sessionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _elapsedSeconds++;
-      });
-    });
-  }
-
+  // Fix _endSession method
   Future<void> _endSession() async {
     _sessionTimer?.cancel();
-    
+
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getInt('userId');
 
     if (userId != null) {
-      final sessionDuration = _elapsedSeconds ~/ 60; // Convert to minutes
-      
-      // Create meditation session record
-      await DatabaseService().createMeditationSession(
-        MeditationSession(
-          title: widget.title,
-          duration: sessionDuration,
-          completedAt: DateTime.now(),
-        ),
-        userId
-      );
+      final sessionDuration =
+          int.parse(widget.duration.split(' ')[0]); // Use actual duration
 
       // Update user stats
       await DatabaseService().updateUserStats(
-        userId: userId,
-        addMinutes: sessionDuration,
-        incrementSession: true
-      );
+          meditationMinutes: sessionDuration,
+          userId: userId,
+          addMinutes: sessionDuration,
+          incrementSession: true);
     }
   }
 
+  // Fix audio initialization
+  Future<void> _initAudio() async {
+    try {
+      await _audioPlayer.setAsset('assets/audio/meditation_bell.mp3');
+      await _audioPlayer.setLoopMode(LoopMode.one);
+      if (isSoundOn) {
+        await _audioPlayer.play();
+      }
+    } catch (e) {
+      debugPrint('Error initializing audio: $e');
+    }
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_timeLeft > 0 && isPlaying) {
+        setState(() {
+          _timeLeft--;
+        });
+      } else if (_timeLeft == 0) {
+        timer.cancel();
+        _showCompletionDialog();
+      }
+    });
+  }
+
+  void _togglePlayPause() {
+    setState(() {
+      isPlaying = !isPlaying;
+      if (isSoundOn) {
+        if (isPlaying) {
+          _audioPlayer.play();
+        } else {
+          _audioPlayer.pause();
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    _sessionTimer?.cancel();
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  // Add _toggleSound method
+  void _toggleSound() {
+    setState(() {
+      isSoundOn = !isSoundOn;
+      if (isSoundOn) {
+        _audioPlayer.play();
+      } else {
+        _audioPlayer.pause();
+      }
+    });
+  }
+
+  // Remove the standalone Text widget and fix the build method's Timer Display
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -215,7 +217,7 @@ class _MeditationSessionScreenState extends State<MeditationSessionScreen> {
 
               // Timer Display
               Text(
-                _formatTime(_timeLeft),
+                '${(_timeLeft ~/ 60).toString().padLeft(2, '0')}:${(_timeLeft % 60).toString().padLeft(2, '0')}',
                 style: TextStyle(
                   color: widget.color,
                   fontSize: 72,
@@ -257,4 +259,4 @@ class _MeditationSessionScreenState extends State<MeditationSessionScreen> {
       ),
     );
   }
-} 
+}

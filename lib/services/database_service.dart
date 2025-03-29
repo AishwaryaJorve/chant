@@ -111,37 +111,54 @@ class DatabaseService {
   Future<Map<String, dynamic>> getUserStats(int userId) async {
     final db = await database;
     try {
-      // Fetch total meditation minutes from sessions
-      final sessionQuery = await db.rawQuery(
-        'SELECT SUM(duration) as total_meditation_minutes, COUNT(*) as total_sessions FROM meditation_sessions WHERE user_id = ?',
-        [userId]
-      );
+      debugPrint('Fetching stats for userId: $userId');
 
-      // Fetch total malas from chant sessions
-      final malasQuery = await db.rawQuery(
-        'SELECT SUM(malas) as total_malas FROM chant_sessions WHERE user_id = ?',
-        [userId]
-      );
+      // First ensure tables exist
+      await _ensureTablesExist(db);
 
-      final totalMeditationMinutes = sessionQuery.first['total_meditation_minutes'] ?? 0;
-      final totalSessions = sessionQuery.first['total_sessions'] ?? 0;
-      final totalMalas = malasQuery.first['total_malas'] ?? 0;
+      // 1. Get meditation sessions data
+      Map<String, dynamic> meditationData = {'total_meditation_minutes': 0, 'total_sessions': 0};
+      try {
+        final meditationQuery = await db.rawQuery('''
+          SELECT 
+            COALESCE(SUM(duration), 0) as total_meditation_minutes,
+            COUNT(*) as total_sessions
+          FROM meditation_sessions 
+          WHERE user_id = ?
+        ''', [userId]);
+        meditationData = meditationQuery.first;
+      } catch (e) {
+        debugPrint('Error querying meditation_sessions: $e');
+      }
 
-      // Fetch user stats
-      final stats = await db.query(
-        'user_stats',
-        where: 'user_id = ?',
-        whereArgs: [userId],
-      );
+      // 2. Get chant sessions data
+      Map<String, dynamic> chantData = {'total_malas': 0, 'total_chant_sessions': 0};
+      try {
+        final chantQuery = await db.rawQuery('''
+          SELECT 
+            COALESCE(SUM(malas), 0) as total_malas,
+            COUNT(*) as total_chant_sessions
+          FROM chant_sessions 
+          WHERE user_id = ?
+        ''', [userId]);
+        chantData = chantQuery.first;
+      } catch (e) {
+        debugPrint('Error querying chant_sessions: $e');
+      }
 
-      return {
-        'total_minutes': totalMeditationMinutes,
-        'total_sessions': totalSessions,
-        'total_malas': totalMalas,
-        'current_streak': stats.isNotEmpty ? (stats.first['current_streak'] ?? 0) : 0,
+      // Combine all data
+      final result = {
+        'total_minutes': meditationData['total_meditation_minutes'] ?? 0,
+        'total_sessions': ((meditationData['total_sessions'] as int?) ?? 0) +
+                        ((chantData['total_chant_sessions'] as int?) ?? 0),
+        'total_malas': chantData['total_malas'] ?? 0,
+        'current_streak': 0, // Default value if stats table doesn't exist
       };
+
+      debugPrint('Computed final stats: $result');
+      return result;
     } catch (e) {
-      debugPrint('Error fetching user stats: $e');
+      debugPrint('Error in getUserStats: $e');
       return {
         'total_minutes': 0,
         'total_sessions': 0,
@@ -149,12 +166,50 @@ class DatabaseService {
         'current_streak': 0,
       };
     }
-  }
+}
+
+// Add this new method to ensure tables exist
+Future<void> _ensureTablesExist(sqflite.Database db) async {
+  await db.execute('''
+    CREATE TABLE IF NOT EXISTS meditation_sessions(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      duration INTEGER NOT NULL,
+      completed_at TEXT NOT NULL,
+      is_favorite INTEGER DEFAULT 0,
+      user_id INTEGER,
+      FOREIGN KEY (user_id) REFERENCES users (id)
+    )
+  ''');
+
+  await db.execute('''
+    CREATE TABLE IF NOT EXISTS chant_sessions(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      malas INTEGER NOT NULL,
+      completed_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users (id)
+    )
+  ''');
+
+  await db.execute('''
+    CREATE TABLE IF NOT EXISTS user_stats(
+      user_id INTEGER PRIMARY KEY,
+      total_minutes INTEGER DEFAULT 0,
+      total_sessions INTEGER DEFAULT 0,
+      total_malas INTEGER DEFAULT 0,
+      total_duration INTEGER DEFAULT 0,
+      last_session_date TEXT,
+      current_streak INTEGER DEFAULT 0,
+      FOREIGN KEY (user_id) REFERENCES users (id)
+    )
+  ''');
+}
 
   Future<void> updateUserStats({
     required int userId, 
     int addMinutes = 0, 
-    bool incrementSession = false,
+    bool incrementSession = false, required int meditationMinutes,
   }) async {
     final db = await database;
     final now = DateTime.now();
@@ -340,43 +395,26 @@ class DatabaseService {
   }
 
   Future<int> getTotalMalas(int userId) async {
-    await _ensureChantSessionsTableExists();
-    
     final db = await database;
-    try {
-      // Prioritize chant_sessions
-      final malasQuery = await db.rawQuery(
-        'SELECT SUM(malas) as total_malas FROM chant_sessions WHERE user_id = ?',
-        [userId]
-      );
+    final result = await db.rawQuery('''
+      SELECT SUM(malas) as total_malas 
+      FROM chant_sessions 
+      WHERE user_id = ?
+    ''', [userId]);
+    
+    debugPrint('Mala count query result: $result');
+    return result.first['total_malas'] as int? ?? 0;
+}
 
-      final chantSessionMalas = malasQuery.first['total_malas'] ?? 0;
-
-      // Fallback to user_stats
-      final statsQuery = await db.query(
-        'user_stats',
-        columns: ['total_malas'],
-        where: 'user_id = ?',
-        whereArgs: [userId]
-      );
-
-      final statsMalas = statsQuery.isNotEmpty 
-        ? (statsQuery.first['total_malas'] ?? 0) 
-        : 0;
-
-      // Use the maximum of the two
-      final totalMalas = max(chantSessionMalas as int, statsMalas as int);
-
-      debugPrint('Chant Sessions Malas: $chantSessionMalas');
-      debugPrint('User Stats Malas: $statsMalas');
-      debugPrint('Total Malas: $totalMalas');
-
-      return totalMalas;
-    } catch (e) {
-      debugPrint('Error fetching total malas: $e');
-      return 0;
-    }
-  }
+Future<void> recordMalaSession(int userId, int malaCount) async {
+    final db = await database;
+    await db.insert('chant_sessions', {
+      'user_id': userId,
+      'malas': malaCount,
+      'completed_at': DateTime.now().toIso8601String(),
+    });
+    debugPrint('Recorded mala session for user $userId: $malaCount malas');
+}
 
   Future<void> checkDatabaseIntegrity() async {
     final db = await database;
@@ -452,7 +490,7 @@ class DatabaseService {
     return sessions.map((session) => MeditationSession.fromMap(session)).toList();
   }
 
-  Future<void> recordMalaSession(int userId, int malas) async {
+  Future<void> saveMalaSession(int userId, int malas) async {
     final db = await database;
     try {
       // Insert chant session
@@ -495,4 +533,32 @@ class DatabaseService {
       debugPrint('Error recording mala session: $e');
     }
   }
-} 
+
+  Future<void> updateMeditationTime(int userId, int minutes) async {
+    final db = await database;
+    
+    // Get current stats
+    final stats = await getUserStats(userId);
+    final currentMinutes = stats?['total_minutes'] ?? 0;
+    
+    // Update total minutes
+    await db.update(
+      'user_stats',
+      {'total_minutes': currentMinutes + minutes},
+      where: 'user_id = ?',
+      whereArgs: [userId],
+    );
+  }
+
+  Future<int> getTotalMeditationTime(int userId) async {
+    final db = await database;
+    final result = await db.query(
+      'user_stats',
+      columns: ['total_minutes'],
+      where: 'user_id = ?',
+      whereArgs: [userId],
+    );
+    
+    return result.isNotEmpty ? (result.first['total_minutes'] as int?) ?? 0 : 0;
+  }
+}

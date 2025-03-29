@@ -77,14 +77,26 @@ class _ChantScreenState extends State<ChantScreen>
     setState(() {
       _count++;
       if (_count % 108 == 0) {
-        // Increment malas
         _malas++;
         _count = 0;
 
-        // Save mala session
         if (userId != null) {
+          // Update malas and session stats
           DatabaseService().recordMalaSession(userId, 1)
-            .then((_) => _fetchTotalMalas());
+            .then((_) => _fetchTotalMalas())
+            .catchError((error) {
+              debugPrint('Error recording mala session: $error');
+            });
+          
+          // Update session time and count
+          final sessionMinutes = (_elapsed.inSeconds / 60).ceil();
+          DatabaseService().updateUserStats(
+            userId: userId,
+            incrementSession: true,
+            meditationMinutes: sessionMinutes,
+          ).catchError((error) {
+            debugPrint('Error updating user stats: $error');
+          });
         }
 
         // Reset timer
@@ -107,6 +119,7 @@ class _ChantScreenState extends State<ChantScreen>
       ..forward();
   }
 
+  // Remove the separate _endSession function as we're handling it in _incrementCount
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     final hours = twoDigits(duration.inHours);
@@ -139,6 +152,7 @@ class _ChantScreenState extends State<ChantScreen>
       await DatabaseService().updateUserStats(
         userId: userId,
         incrementSession: true,
+        meditationMinutes: (_elapsed.inSeconds / 60).ceil(),
       );
 
       // Optional: Create a specific chant session record
@@ -366,4 +380,17 @@ class CirclePatternPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
+
+
+void _endSession() async {
+  final prefs = await SharedPreferences.getInstance();
+  final userId = prefs.getInt('userId');
+  
+  if (userId != null) {
+    // Calculate session duration in minutes
+    final Duration elapsed = Duration.zero;
+    final sessionMinutes = (elapsed.inSeconds / 60).ceil();
+    await DatabaseService().updateMeditationTime(userId, sessionMinutes);
+  }
 }

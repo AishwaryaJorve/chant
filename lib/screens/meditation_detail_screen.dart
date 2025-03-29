@@ -34,6 +34,7 @@ class _MeditationDetailScreenState extends State<MeditationDetailScreen> {
         
         // Update user stats
         await DatabaseService().updateUserStats(
+          meditationMinutes: sessionDuration,
           userId: userId,
           addMinutes: sessionDuration, // Add the duration of the session
           incrementSession: true, // Increment the session count
