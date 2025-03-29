@@ -1,4 +1,3 @@
-import 'package:chants/models/meditation_session.dart';
 import 'package:chants/services/database_service.dart';
 import 'package:flutter/material.dart';
 import 'meditation_session_screen.dart';
@@ -35,10 +34,9 @@ class _MeditationDetailScreenState extends State<MeditationDetailScreen> {
         
         // Update user stats
         await DatabaseService().updateUserStats(
-          userId,
+          userId: userId,
           addMinutes: sessionDuration, // Add the duration of the session
           incrementSession: true, // Increment the session count
-          malasCount: 1, // Increment the malas count by 1
         );
         
         if (mounted) {

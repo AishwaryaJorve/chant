@@ -45,7 +45,10 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
   mockito: ^5.0.0
+  build_runner: ^2.3.0
   flutter_lints: ^3.0.0
 
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -75,7 +78,6 @@ flutter:
     - assets/images/chant6.png
     - assets/images/chant7.png
     - assets/audio/meditation_baground.mp3
-    - assets/images/default_profile.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

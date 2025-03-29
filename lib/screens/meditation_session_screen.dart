@@ -28,6 +28,8 @@ class _MeditationSessionScreenState extends State<MeditationSessionScreen> {
   late Timer _timer;
   int _timeLeft = 0;
   final AudioPlayer _audioPlayer = AudioPlayer();
+  Timer? _sessionTimer;
+  int _elapsedSeconds = 0;
 
   @override
   void initState() {
@@ -99,7 +101,7 @@ class _MeditationSessionScreenState extends State<MeditationSessionScreen> {
     if (userId != null) {
       final dbService = DatabaseService();
       await dbService.updateUserStats(
-        userId,
+        userId: userId,
         addMinutes: int.parse(widget.duration.split(' ')[0]),
         incrementSession: true,
       );
@@ -138,6 +140,42 @@ class _MeditationSessionScreenState extends State<MeditationSessionScreen> {
         ],
       ),
     );
+  }
+
+  void _startSession() {
+    _sessionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _elapsedSeconds++;
+      });
+    });
+  }
+
+  Future<void> _endSession() async {
+    _sessionTimer?.cancel();
+    
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('userId');
+
+    if (userId != null) {
+      final sessionDuration = _elapsedSeconds ~/ 60; // Convert to minutes
+      
+      // Create meditation session record
+      await DatabaseService().createMeditationSession(
+        MeditationSession(
+          title: widget.title,
+          duration: sessionDuration,
+          completedAt: DateTime.now(),
+        ),
+        userId
+      );
+
+      // Update user stats
+      await DatabaseService().updateUserStats(
+        userId: userId,
+        addMinutes: sessionDuration,
+        incrementSession: true
+      );
+    }
   }
 
   @override

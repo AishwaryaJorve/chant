@@ -29,7 +29,11 @@ class _ChantScreenState extends State<ChantScreen>
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
-    _fetchTotalMalas();
+    
+    // Fetch total malas after a short delay to ensure database is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchTotalMalas();
+    });
   }
 
   @override
@@ -73,15 +77,14 @@ class _ChantScreenState extends State<ChantScreen>
     setState(() {
       _count++;
       if (_count % 108 == 0) {
+        // Increment malas
         _malas++;
         _count = 0;
 
-        // Save session time before resetting
+        // Save mala session
         if (userId != null) {
-          DatabaseService().updateUserStats(
-            userId,
-            malasCount: 1, // Increment the malas count by 1
-          );
+          DatabaseService().recordMalaSession(userId, 1)
+            .then((_) => _fetchTotalMalas());
         }
 
         // Reset timer
@@ -118,11 +121,38 @@ class _ChantScreenState extends State<ChantScreen>
 
     if (userId != null) {
       final totalMalas = await DatabaseService().getTotalMalas(userId);
-      setState(() {
-        _malas = totalMalas > 0 ? totalMalas : 0; // Ensure it's never negative
-      });
-      debugPrint('Fetched total malas: $_malas');
+      debugPrint('Fetched total malas: $totalMalas');
+      
+      if (mounted) {
+        setState(() {
+          _malas = totalMalas;
+        });
+      }
     }
+  }
+
+  Future<void> _saveMalaSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('userId');
+
+    if (userId != null) {
+      await DatabaseService().updateUserStats(
+        userId: userId,
+        incrementSession: true,
+      );
+
+      // Optional: Create a specific chant session record
+      await _createChantSession(userId);
+    }
+  }
+
+  Future<void> _createChantSession(int userId) async {
+    final db = await DatabaseService().database;
+    await db.insert('chant_sessions', {
+      'user_id': userId,
+      'malas': _malas, // Number of malas completed
+      'completed_at': DateTime.now().toIso8601String(),
+    });
   }
 
   @override

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../main.dart';  // Import to access getTotalMalas function
 import '../widgets/bottom_nav.dart';
 import '../widgets/theme_background.dart';
 import '../services/database_service.dart';
@@ -7,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'account_settings_screen.dart';
 import 'help_support_screen.dart';
 import '../mixins/auth_required_mixin.dart';
+import 'welcome_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -38,66 +41,50 @@ class _ProfileScreenState extends State<ProfileScreen> with AuthRequiredMixin {
 
   Future<void> _loadUserData() async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
-
+    
     try {
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getInt('userId');
       final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
-      debugPrint('Loading user data for ID: $userId, isLoggedIn: $isLoggedIn');
       
-      if (userId != null && isLoggedIn) {
-        final user = await DatabaseService().getUser(userId);
-        final stats = await DatabaseService().getUserStats(userId);
-        
-        if (user == null) {
-          // User not found in database, clear preferences and redirect
-          await prefs.clear();
-          if (mounted) {
-            setState(() {
-              _user = null;
-              _stats = null;
-              _isLoading = false;
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Please login again')),
-            );
-            Navigator.pushReplacementNamed(context, '/welcome');
-          }
-          return;
-        }
+      debugPrint('Loading user data - UserID: $userId, IsLoggedIn: $isLoggedIn');
 
-        if (mounted) {
-          setState(() {
-            _user = user;
-            _stats = stats;
-            _isLoading = false;
-          });
-        }
-      } else {
-        // Not logged in, redirect to welcome
-        if (mounted) {
-          setState(() {
-            _user = null;
-            _stats = null;
-            _isLoading = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please login to continue')),
-          );
-          Navigator.pushReplacementNamed(context, '/welcome');
-        }
+      if (userId == null || !isLoggedIn) {
+        debugPrint('No valid user session found');
+        _redirectToWelcomeScreen();
+        return;
       }
-    } catch (e) {
-      debugPrint('Error loading user data: $e');
+
+      final user = await DatabaseService().getUser(userId);
+      
+      if (user == null) {
+        debugPrint('User not found in database');
+        _redirectToWelcomeScreen();
+        return;
+      }
+
+      final stats = await DatabaseService().getUserStats(userId);
+      
+      debugPrint('Loaded Stats: $stats');
+
       if (mounted) {
         setState(() {
-          _user = null;
-          _stats = null;
+          _user = user;
+          _stats = stats;
           _isLoading = false;
         });
-        Navigator.pushReplacementNamed(context, '/welcome');
       }
+    } catch (e) {
+      debugPrint('Error in _loadUserData: $e');
+      _redirectToWelcomeScreen();
+    }
+  }
+
+  void _redirectToWelcomeScreen() {
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const WelcomeScreen())
+      );
     }
   }
 
@@ -242,7 +229,7 @@ class _ProfileScreenState extends State<ProfileScreen> with AuthRequiredMixin {
       },
       {
         'title': 'Total Malas',
-        'value': '${_stats?['total_malas'] ?? 0}',
+        'value': '${_malas ?? 0}',  // Changed this line to use _malas
         'icon': Icons.repeat,
         'color': Colors.teal,
       },
@@ -381,11 +368,13 @@ class _ProfileScreenState extends State<ProfileScreen> with AuthRequiredMixin {
     );
   }
 
-  String _formatDuration(int seconds) {
-    final duration = Duration(seconds: seconds);
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes.remainder(60);
+  String _formatDuration(int minutes) {
+    final hours = minutes ~/ 60;
+    final remainingMinutes = minutes % 60;
     
-    return '${hours}h ${minutes}m';
+    if (hours > 0) {
+      return '${hours}h ${remainingMinutes}m';
+    }
+    return '${minutes}m';
   }
-} 
+}
