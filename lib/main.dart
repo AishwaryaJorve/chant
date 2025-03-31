@@ -9,12 +9,13 @@ import 'package:chants/screens/search_screen.dart';
 import 'package:chants/screens/chant_screen.dart';
 import 'services/database_service.dart';
 import 'package:sqflite/sqflite.dart' as sqflite;
+ import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Remove or comment out the integrity check
-  // await DatabaseService().checkDatabaseIntegrity();
+  // Initialize notifications
+  await NotificationService.instance.initialize();
   
   // Load the theme mode before running the app
   final themeMode = await ThemeService.loadThemeMode();

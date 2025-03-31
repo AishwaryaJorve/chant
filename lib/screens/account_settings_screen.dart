@@ -4,6 +4,7 @@ import '../widgets/theme_background.dart';
 import '../models/user.dart';
 import '../services/database_service.dart';
 import '../services/theme_service.dart';
+import '../services/notification_service.dart';
 import 'welcome_screen.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
@@ -16,14 +17,14 @@ class AccountSettingsScreen extends StatefulWidget {
 }
 
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
+  // Remove biometric variable
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   bool _isEditing = false;
   bool _isSaving = false;
   ThemeMode _currentThemeMode = ThemeMode.system;
   bool _notificationsEnabled = true;
-  bool _biometricLoginEnabled = false;
-  TimeOfDay _reminderTime = TimeOfDay(hour: 19, minute: 0); // Default 7 PM
+  TimeOfDay _reminderTime = TimeOfDay(hour: 19, minute: 0);
 
   @override
   void initState() {
@@ -31,7 +32,14 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     _nameController = TextEditingController(text: widget.user?.name);
     _emailController = TextEditingController(text: widget.user?.email);
     _loadSettings();
+    // Initialize notifications
+    NotificationService.instance.initialize();
   }
+
+  // Remove the duplicate buildAccountSettingsScreen method as it conflicts with build method
+  // Delete this entire method:
+  // @override
+  // Widget buildAccountSettingsScreen(BuildContext context) { ... }
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
@@ -40,13 +48,78 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     setState(() {
       _currentThemeMode = themeMode;
       _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
-      _biometricLoginEnabled = prefs.getBool('biometric_login_enabled') ?? false;
-      
-      // Load saved reminder time or use default
       final savedHour = prefs.getInt('reminder_hour') ?? 19;
       final savedMinute = prefs.getInt('reminder_minute') ?? 0;
       _reminderTime = TimeOfDay(hour: savedHour, minute: savedMinute);
     });
+  }
+
+  // Remove _toggleBiometricLogin method entirely
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Account Settings'),
+        actions: [
+          if (_isEditing)
+            IconButton(
+              icon: _isSaving 
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.save),
+              onPressed: _isSaving ? null : _saveChanges,
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () => setState(() => _isEditing = true),
+            ),
+        ],
+      ),
+      body: ThemeBackground(
+        child: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              _buildProfileSection(),
+              const SizedBox(height: 24),
+              _buildSection('Notifications', [
+                _buildSwitchTile(
+                  'Meditation Reminders',
+                  'Receive daily meditation reminders',
+                  _notificationsEnabled,
+                  _toggleNotifications,
+                ),
+                if (_notificationsEnabled)
+                  ListTile(
+                    title: const Text('Reminder Time'),
+                    subtitle: Text(_reminderTime.format(context)),
+                    trailing: const Icon(Icons.access_time),
+                    onTap: _selectReminderTime,
+                  ),
+              ]),
+              const SizedBox(height: 16),
+              _buildSection('Account', [
+                _buildActionTile(
+                  'Logout',
+                  'Sign out of your account',
+                  Icons.logout,
+                  onTap: _logout,
+                ),
+                // Delete account tile and function removed
+              ]),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _saveChanges() async {
@@ -92,28 +165,33 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     await prefs.setInt('reminder_hour', _reminderTime.hour);
     await prefs.setInt('reminder_minute', _reminderTime.minute);
     
-    // TODO: Implement actual notification scheduling
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Reminder set for ${_reminderTime.format(context)}'),
-      ),
-    );
+    if (_notificationsEnabled) {
+      await NotificationService.instance.cancelAllNotifications(); // Updated this line
+      await NotificationService.instance.scheduleNotification(_reminderTime);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Reminder set for ${_reminderTime.format(context)}'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _toggleNotifications(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('notifications_enabled', value);
+    
     setState(() {
       _notificationsEnabled = value;
     });
 
-    // TODO: Enable/Disable notification scheduling
     if (value) {
-      // Schedule notifications
-      _saveReminderTime();
+      await _saveReminderTime(); // This will schedule the notification
     } else {
-      // Cancel all scheduled notifications
-      // You would implement this with a notification service
+      await NotificationService.instance.cancelAllNotifications();
     }
   }
 
@@ -131,13 +209,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     }
   }
 
-  Future<void> _toggleBiometricLogin(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('biometric_login_enabled', value);
-    setState(() {
-      _biometricLoginEnabled = value;
-    });
-  }
+
 
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
@@ -200,7 +272,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildAccountSettingsScreen(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Account Settings'),
@@ -247,15 +319,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     trailing: const Icon(Icons.access_time),
                     onTap: _selectReminderTime,
                   ),
-              ]),
-              const SizedBox(height: 16),
-              _buildSection('Security', [
-                _buildSwitchTile(
-                  'Biometric Login',
-                  'Use fingerprint or face ID to log in',
-                  _biometricLoginEnabled,
-                  _toggleBiometricLogin,
-                ),
               ]),
               const SizedBox(height: 16),
               _buildSection('Account', [
@@ -434,4 +497,4 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         return 'Dark Mode';
     }
   }
-} 
+}
